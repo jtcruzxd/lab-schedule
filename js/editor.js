@@ -69,7 +69,50 @@
     });
 
     reset.addEventListener('click', () => {
-      if (confirm('Reset all changes to default?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+      if (!confirm('Reset everything? All time slots, columns, rows, classes and settings will be cleared.')) return;
+
+      // 1. Wipe localStorage
+      localStorage.removeItem(STORAGE_KEY);
+
+      // 2. Reset in-memory SCHEDULE_DATA to blank state
+      SCHEDULE_DATA.columns     = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      SCHEDULE_DATA.rows        = [{ type: 'lunch' }];
+      SCHEDULE_DATA.departments = [{ id:'vacant', label:'', fullName:'Vacant / Lab Maintenance', color:'#cbd5e0' }];
+      SCHEDULE_DATA.pcInventory = [];
+      SCHEDULE_DATA.pcTotal     = 0;
+      SCHEDULE_DATA.software    = [];
+
+      // 3. Reset header text to defaults
+      const defaults = {
+        hRepublic:    'Republic of the Philippines',
+        hInstitution: 'Occidental Mindoro State College',
+        hCollege:     'College of Arts, Sciences and Technology',
+        hContact:     'San Jose, Occidental Mindoro · www.omsc.edu.ph · omsc_9747@yahoo.com · Tel/Fax: (043) 491-1460',
+        hSemester:    '1st Semester',
+        hYear:        '2026 – 2027',
+        toolbarTitle: '🖥️ Computer Laboratory — Main Campus',
+        sig1Name:     'JOVEN T. CRUZ',
+        sig1Role:     'Laboratory Custodian',
+        sig2Name:     'JOSELITO D. AGUID, PhDs, LPT, CHRA',
+        sig2Role:     'Director for Instruction, CAST / Immediate Supervisor'
+      };
+      Object.entries(defaults).forEach(([id, text]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      });
+
+      // 4. Reset logo — show placeholder, hide image
+      const logoImg = document.getElementById('logoImg');
+      const crest   = document.getElementById('crestPlaceholder');
+      if (logoImg) { logoImg.src = ''; logoImg.style.display = 'none'; }
+      if (crest)   { crest.style.display = 'flex'; }
+
+      // 5. Re-render all sections
+      window.renderTable();
+      window.renderLegend();
+      window.renderPC();
+      window.renderSoftware();
+      patchTableForEditor();
     });
 
     /* Add column */
