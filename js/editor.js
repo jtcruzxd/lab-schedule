@@ -521,9 +521,9 @@
       type:'class',
       dept:       deptId,
       deptLabel:  deptLabel,
-      instructor: document.getElementById('f_teacher').value.trim(),
-      subject:    document.getElementById('f_subject').value.trim(),
-      section:    document.getElementById('f_section').value.trim(),
+      instructor: toProperCase(document.getElementById('f_teacher').value),
+      subject:    toProperCase(document.getElementById('f_subject').value),
+      section:    toProperCase(document.getElementById('f_section').value),
       course:     document.getElementById('f_course').value.trim(),
       time:       document.getElementById('f_time').value.trim(),
     };
@@ -767,6 +767,12 @@
     const m = {};
     SCHEDULE_DATA.departments.forEach(d => { m[d.id] = { label: d.label, fullName: d.fullName }; });
     return m;
+  }
+
+  /* ── Proper case helper ── */
+  function toProperCase(str) {
+    if (!str) return '';
+    return str.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   }
 
   /* ══════════════════════ INIT ══════════════════════ */
