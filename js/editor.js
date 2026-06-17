@@ -30,10 +30,10 @@
         else { exists.color = saved.color; exists.label = saved.label; exists.fullName = saved.fullName; }
       });
     }
-    if (s.pcInventory)   SCHEDULE_DATA.pcInventory   = s.pcInventory;
-    if (s.pcTotal!==undefined) SCHEDULE_DATA.pcTotal = s.pcTotal;
-    if (s.software)      SCHEDULE_DATA.software      = s.software;
-    if (s.logoDataUrl)   applyLogo(s.logoDataUrl);
+    if (s.pcInventory)        SCHEDULE_DATA.pcInventory   = s.pcInventory;
+    if (s.pcTotal!==undefined) SCHEDULE_DATA.pcTotal      = s.pcTotal;
+    if (s.software)            SCHEDULE_DATA.software     = s.software;
+    if (s.logoDataUrl)         applyLogo(s.logoDataUrl);
 
     /* header text */
     const metaMap = { republic:'hRepublic', institution:'hInstitution', college:'hCollege', contact:'hContact', semester:'hSemester', academicYear:'hYear', labTitle:'toolbarTitle', sig1Name:'sig1Name', sig1Role:'sig1Role', sig2Name:'sig2Name', sig2Role:'sig2Role' };
@@ -43,8 +43,8 @@
 
   /* ══════════════════════ LOGO ══════════════════════ */
   function applyLogo(dataUrl) {
-    const img    = document.getElementById('logoImg');
-    const crest  = document.getElementById('crestPlaceholder');
+    const img   = document.getElementById('logoImg');
+    const crest = document.getElementById('crestPlaceholder');
     if (img)   { img.src = dataUrl; img.style.display = 'block'; }
     if (crest) { crest.style.display = 'none'; }
   }
@@ -146,12 +146,14 @@
       el.contentEditable = on ? 'true' : 'false';
     });
   }
+
   function persistAllHeader() {
     const metaMap = { republic:'hRepublic', institution:'hInstitution', college:'hCollege', contact:'hContact', semester:'hSemester', academicYear:'hYear', labTitle:'toolbarTitle', sig1Name:'sig1Name', sig1Role:'sig1Role', sig2Name:'sig2Name', sig2Role:'sig2Role' };
     const s = get();
     Object.entries(metaMap).forEach(([f,id]) => { const el = document.getElementById(id); if(el) s[f] = el.textContent.trim(); });
     save(s);
   }
+
   function initHeaderFields() {
     document.querySelectorAll('[data-field]').forEach(el => {
       el.contentEditable = 'false';
@@ -168,6 +170,7 @@
       editColumnHeader(th, ci);
     });
   }
+
   function editColumnHeader(th, ci) {
     // Strip del-btn text from value
     const orig = (th.firstChild && th.firstChild.nodeType === 3)
@@ -396,7 +399,7 @@
     document.getElementById('mergeOverlay').style.display = 'flex';
   }
 
-  document.getElementById('mergeClose').addEventListener('click',  () => { document.getElementById('mergeOverlay').style.display='none'; });
+  document.getElementById('mergeClose').addEventListener('click',   () => { document.getElementById('mergeOverlay').style.display='none'; });
   document.getElementById('mergeCancelBtn').addEventListener('click',() => { document.getElementById('mergeOverlay').style.display='none'; });
   document.getElementById('mergeApplyBtn').addEventListener('click', () => {
     const span = Math.max(1, parseInt(document.getElementById('merge_span').value,10)||1);
@@ -420,8 +423,8 @@
   }
 
   /* ══════════════════════ CLASS MODAL ══════════════════════ */
-  const overlay   = document.getElementById('modalOverlay');
-  const form      = document.getElementById('classForm');
+  const overlay = document.getElementById('modalOverlay');
+  const form    = document.getElementById('classForm');
 
   document.getElementById('modalClose').addEventListener('click',    closeModal);
   document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
@@ -506,8 +509,8 @@
       if (tr) { const tc=tr.querySelector('.time-col'); if(tc){ const hin=tc.querySelector('.edit-hint'); const del=tc.querySelector('.del-row-btn'); tc.textContent=newLabel; if(hin)tc.appendChild(hin); if(del)tc.appendChild(del); }}
     }
 
-    const deptRaw = document.getElementById('f_dept').value.trim();
-    const deptId  = deptRaw.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const deptRaw   = document.getElementById('f_dept').value.trim();
+    const deptId    = deptRaw.toLowerCase().replace(/[^a-z0-9]/g, '_');
     // Get the human-readable label from the selected option
     const deptSel   = document.getElementById('f_dept');
     const deptLabel = deptSel.options[deptSel.selectedIndex]
@@ -562,15 +565,16 @@
   }
 
   function validate() {
-    let ok=true;
-    ['f_subject','f_section','f_teacher'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(!el.value.trim()){el.classList.add('invalid');ok=false;}
+    let ok = true;
+    ['f_subject','f_section','f_teacher'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { el.classList.add('invalid'); ok = false; }
     });
     return ok;
   }
+
   function clearVal() {
-    document.querySelectorAll('.form-control.invalid').forEach(e=>e.classList.remove('invalid'));
+    document.querySelectorAll('.form-control.invalid').forEach(e => e.classList.remove('invalid'));
   }
 
   /* ══════════════════════ ADD ROW DIALOG ══════════════════════ */
@@ -632,11 +636,11 @@
     const li      = lunchIndex();
 
     if (pos === 'before-lunch' && li >= 0) {
-      SCHEDULE_DATA.rows.splice(li, 0, newRow);        // insert right before lunch
+      SCHEDULE_DATA.rows.splice(li, 0, newRow);       // insert right before lunch
     } else if (pos === 'after-lunch' && li >= 0) {
-      SCHEDULE_DATA.rows.splice(li + 1, 0, newRow);    // insert right after lunch
+      SCHEDULE_DATA.rows.splice(li + 1, 0, newRow);   // insert right after lunch
     } else {
-      SCHEDULE_DATA.rows.push(newRow);                  // bottom
+      SCHEDULE_DATA.rows.push(newRow);                 // bottom
     }
 
     persistAllCells();
@@ -754,10 +758,15 @@
   }
 
   function buildDeptColorsMap() {
-    const m = {}; SCHEDULE_DATA.departments.forEach(d => { m[d.id] = d.color; }); return m;
+    const m = {};
+    SCHEDULE_DATA.departments.forEach(d => { m[d.id] = d.color; });
+    return m;
   }
+
   function buildDeptLabelsMap() {
-    const m = {}; SCHEDULE_DATA.departments.forEach(d => { m[d.id] = {label:d.label, fullName:d.fullName}; }); return m;
+    const m = {};
+    SCHEDULE_DATA.departments.forEach(d => { m[d.id] = { label: d.label, fullName: d.fullName }; });
+    return m;
   }
 
   /* ══════════════════════ INIT ══════════════════════ */
@@ -773,7 +782,7 @@
     /* restore header text */
     if (s) {
       const metaMap = { republic:'hRepublic', institution:'hInstitution', college:'hCollege', contact:'hContact', semester:'hSemester', academicYear:'hYear', labTitle:'toolbarTitle', sig1Name:'sig1Name', sig1Role:'sig1Role', sig2Name:'sig2Name', sig2Role:'sig2Role' };
-      Object.entries(metaMap).forEach(([f,id])=>{if(s[f]!==undefined){const el=document.getElementById(id);if(el)el.textContent=s[f];}});
+      Object.entries(metaMap).forEach(([f,id]) => { if(s[f]!==undefined) { const el = document.getElementById(id); if(el) el.textContent = s[f]; } });
     }
   });
 
