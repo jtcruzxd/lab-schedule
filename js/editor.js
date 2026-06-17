@@ -69,20 +69,25 @@
     });
 
     reset.addEventListener('click', () => {
-      if (!confirm('Reset everything? All time slots, columns, rows, classes and settings will be cleared.')) return;
+      if (!confirm('Reset everything? This will clear ALL time slots, columns, classes, and settings.')) return;
 
-      // 1. Wipe localStorage
+      // Clear localStorage
       localStorage.removeItem(STORAGE_KEY);
 
-      // 2. Reset in-memory SCHEDULE_DATA to blank state
-      SCHEDULE_DATA.columns     = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      SCHEDULE_DATA.rows        = [{ type: 'lunch' }];
-      SCHEDULE_DATA.departments = [{ id:'vacant', label:'', fullName:'Vacant / Lab Maintenance', color:'#cbd5e0' }];
-      SCHEDULE_DATA.pcInventory = [];
-      SCHEDULE_DATA.pcTotal     = 0;
-      SCHEDULE_DATA.software    = [];
+      // Wipe SCHEDULE_DATA in-memory to a blank state
+      SCHEDULE_DATA.columns = [];
+      SCHEDULE_DATA.rows    = [];
 
-      // 3. Reset header text to defaults
+      // Re-render the empty table
+      window.renderTable();
+      patchTableForEditor();
+
+      // Also reset legend, PC, software to defaults from data.js
+      window.renderLegend();
+      window.renderPC();
+      window.renderSoftware();
+
+      // Reset header fields to data.js defaults
       const defaults = {
         hRepublic:    'Republic of the Philippines',
         hInstitution: 'Occidental Mindoro State College',
@@ -94,25 +99,18 @@
         sig1Name:     'JOVEN T. CRUZ',
         sig1Role:     'Laboratory Custodian',
         sig2Name:     'JOSELITO D. AGUID, PhDs, LPT, CHRA',
-        sig2Role:     'Director for Instruction, CAST / Immediate Supervisor'
+        sig2Role:     'Director for Instruction, CAST / Immediate Supervisor',
       };
-      Object.entries(defaults).forEach(([id, text]) => {
+      Object.entries(defaults).forEach(([id, val]) => {
         const el = document.getElementById(id);
-        if (el) el.textContent = text;
+        if (el) el.textContent = val;
       });
 
-      // 4. Reset logo — show placeholder, hide image
-      const logoImg = document.getElementById('logoImg');
-      const crest   = document.getElementById('crestPlaceholder');
-      if (logoImg) { logoImg.src = ''; logoImg.style.display = 'none'; }
-      if (crest)   { crest.style.display = 'flex'; }
-
-      // 5. Re-render all sections
-      window.renderTable();
-      window.renderLegend();
-      window.renderPC();
-      window.renderSoftware();
-      patchTableForEditor();
+      // Reset logo back to placeholder
+      const img   = document.getElementById('logoImg');
+      const crest = document.getElementById('crestPlaceholder');
+      if (img)   { img.src = ''; img.style.display = 'none'; }
+      if (crest) { crest.style.display = 'flex'; }
     });
 
     /* Add column */
@@ -517,9 +515,10 @@
   }
 
   function openAddRowDialog() {
-    /* Build a small inline modal */
     const li = lunchIndex();
-    const hasBefore = li > 0;
+    // "Before lunch" is available whenever a lunch row exists (li >= 0)
+    // "After lunch" is available when lunch exists and isn't the very last row
+    const hasBefore = li >= 0;
     const hasAfter  = li >= 0 && li < SCHEDULE_DATA.rows.length - 1;
 
     const html = `
@@ -568,7 +567,7 @@
     const newRow  = { type:'normal', label, cells };
     const li      = lunchIndex();
 
-    if (pos === 'before-lunch' && li > 0) {
+    if (pos === 'before-lunch' && li >= 0) {
       SCHEDULE_DATA.rows.splice(li, 0, newRow);        // insert right before lunch
     } else if (pos === 'after-lunch' && li >= 0) {
       SCHEDULE_DATA.rows.splice(li + 1, 0, newRow);    // insert right after lunch

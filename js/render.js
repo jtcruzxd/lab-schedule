@@ -89,6 +89,18 @@
     tbody.innerHTML = '';
     const numCols = (SCHEDULE_DATA.columns || []).length;
 
+    // Empty state — show a helper message
+    if (numCols === 0 && SCHEDULE_DATA.rows.length === 0) {
+      const tr = el('tr');
+      const td = el('td','','');
+      td.setAttribute('colspan','1');
+      td.style.cssText = 'text-align:center;padding:40px;color:#a0aec0;font-size:13px;font-style:italic;';
+      td.textContent   = 'Schedule is empty. Use + Column and + Row to build your schedule.';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
     SCHEDULE_DATA.rows.forEach((row, ri) => {
       if (row.type === 'lunch') {
         const tr = el('tr','row-lunch');
