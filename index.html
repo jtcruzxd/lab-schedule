@@ -57,6 +57,7 @@
     </div>
     <div class="toolbar-right">
       <button class="btn btn-outline" id="toggleViewBtn" aria-pressed="false">📱 Compact</button>
+      <button class="btn btn-outline" id="viewArchivesBtn">📂 Archives</button>
       <button class="btn btn-outline" id="editModeBtn"   aria-pressed="false">✏️ Edit Schedule</button>
       <button class="btn btn-primary" onclick="window.print()">🖨️ Print</button>
     </div>
@@ -71,6 +72,7 @@
       <button class="btn btn-sm btn-outline" id="addColBtn">+ Column</button>
       <button class="btn btn-sm btn-outline" id="addRowBtn">+ Row</button>
       <button class="btn btn-sm btn-outline" id="showBackupsBtn">🕓 Backups</button>
+      <button class="btn btn-sm btn-outline" id="archiveBtn">📦 Archive</button>
       <button class="btn btn-sm btn-danger"  id="resetAllBtn">↺ Reset</button>
     </div>
   </div>
@@ -90,7 +92,52 @@
     </div>
   </div>
 
-  <!-- ══ CLASS ENTRY MODAL ══ -->
+  <!-- ══ ARCHIVE PANEL ══ -->
+  <div class="modal-overlay" id="archiveOverlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <h2 class="modal-title" id="archivePanelTitle">Schedule Archives</h2>
+        <button class="modal-close" id="archiveClose">&times;</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Save new archive -->
+        <div class="archive-save-row" id="archiveSaveRow">
+          <div style="font-size:12px;font-weight:700;color:#1a3a6b;margin-bottom:8px">📦 Archive Current Semester</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="archiveLabel" class="form-control"
+              placeholder="e.g. 1st Semester 2025–2026 · Lab 1" style="flex:1" />
+            <button class="btn btn-primary btn-sm" id="archiveSaveBtn">Save Archive</button>
+          </div>
+          <p style="font-size:10px;color:#a0aec0;margin-top:4px">Archives are stored in your browser and never expire.</p>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0" />
+
+        <!-- Archive list -->
+        <div style="font-size:12px;font-weight:700;color:#1a3a6b;margin-bottom:10px">📂 Saved Archives</div>
+        <ul id="archiveList"
+          style="list-style:none;display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto"></ul>
+        <p id="archiveEmpty"
+          style="font-size:12px;color:#a0aec0;text-align:center;padding:16px 0;display:none">No archives yet.</p>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ARCHIVE VIEWER ══ -->
+  <div class="modal-overlay" id="archiveViewerOverlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:96vw;width:1200px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column">
+      <div class="modal-header" style="flex-shrink:0">
+        <h2 class="modal-title" id="archiveViewerTitle">Archive Viewer</h2>
+        <button class="modal-close" id="archiveViewerClose">&times;</button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:20px">
+        <!-- Read-only rendered schedule -->
+        <div id="archiveViewerContent"></div>
+      </div>
+    </div>
+  </div>
   <div class="modal-overlay" id="modalOverlay" style="display:none" role="dialog" aria-modal="true">
     <div class="modal">
       <div class="modal-header">

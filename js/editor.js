@@ -973,6 +973,248 @@
     location.reload();
   }
 
+  /* ══════════════════════ ARCHIVE ══════════════════════ */
+  const ARCHIVE_KEY = 'omsc_schedule_archives'; // shared across all labs
+
+  function getArchives() {
+    try { const s = localStorage.getItem(ARCHIVE_KEY); return s ? JSON.parse(s) : []; } catch(e) { return []; }
+  }
+
+  function saveArchives(list) {
+    try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(list)); } catch(e) {}
+  }
+
+  function initArchive() {
+    // Edit-mode "Archive" button
+    const archBtn = document.getElementById('archiveBtn');
+    if (archBtn) archBtn.addEventListener('click', () => openArchivePanel(true));
+
+    // Toolbar "Archives" button (always visible)
+    const viewBtn = document.getElementById('viewArchivesBtn');
+    if (viewBtn) viewBtn.addEventListener('click', () => openArchivePanel(false));
+
+    // Panel close
+    document.getElementById('archiveClose').addEventListener('click', () => {
+      document.getElementById('archiveOverlay').style.display = 'none';
+    });
+    document.getElementById('archiveOverlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('archiveOverlay'))
+        document.getElementById('archiveOverlay').style.display = 'none';
+    });
+
+    // Viewer close
+    document.getElementById('archiveViewerClose').addEventListener('click', () => {
+      document.getElementById('archiveViewerOverlay').style.display = 'none';
+    });
+    document.getElementById('archiveViewerOverlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('archiveViewerOverlay'))
+        document.getElementById('archiveViewerOverlay').style.display = 'none';
+    });
+
+    // Save archive button
+    document.getElementById('archiveSaveBtn').addEventListener('click', saveCurrentArchive);
+  }
+
+  function openArchivePanel(showSaveRow) {
+    const overlay  = document.getElementById('archiveOverlay');
+    const saveRow  = document.getElementById('archiveSaveRow');
+    const titleEl  = document.getElementById('archivePanelTitle');
+    const list     = document.getElementById('archiveList');
+    const empty    = document.getElementById('archiveEmpty');
+    const archives = getArchives();
+
+    // Pre-fill label with current semester + lab
+    const semEl  = document.getElementById('hSemester');
+    const yearEl = document.getElementById('hYear');
+    const sem    = (semEl  ? semEl.textContent.trim()  : '1st Semester');
+    const year   = (yearEl ? yearEl.textContent.trim() : '');
+    document.getElementById('archiveLabel').value =
+      `${sem} ${year} · Laboratory ${_activeLab}`.trim();
+
+    saveRow.style.display = showSaveRow ? 'block' : 'none';
+    titleEl.textContent   = showSaveRow ? 'Archive Current Semester' : 'Schedule Archives';
+
+    list.innerHTML = '';
+    if (archives.length === 0) {
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      archives.forEach((arc, idx) => {
+        list.appendChild(buildArchiveRow(arc, idx));
+      });
+    }
+
+    overlay.style.display = 'flex';
+  }
+
+  function buildArchiveRow(arc, idx) {
+    const li = document.createElement('li');
+    li.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#f7f9fc;border-radius:8px;border:1px solid #dde5ef;';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0';
+    info.innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:#1a3a6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        📦 ${escHtml(arc.label)}
+      </div>
+      <div style="font-size:10px;color:#a0aec0;margin-top:2px">
+        Saved ${new Date(arc.ts).toLocaleString()}
+      </div>`;
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:6px;flex-shrink:0';
+
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'btn btn-sm btn-outline';
+    viewBtn.textContent = '👁 View';
+    viewBtn.addEventListener('click', () => viewArchive(arc));
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-sm btn-danger';
+    delBtn.textContent = '✕';
+    delBtn.title = 'Delete archive';
+    delBtn.addEventListener('click', () => {
+      if (!confirm(`Delete archive "${arc.label}"?`)) return;
+      const archives = getArchives();
+      archives.splice(idx, 1);
+      saveArchives(archives);
+      openArchivePanel(document.getElementById('archiveSaveRow').style.display !== 'none');
+    });
+
+    actions.appendChild(viewBtn);
+    actions.appendChild(delBtn);
+    li.appendChild(info);
+    li.appendChild(actions);
+    return li;
+  }
+
+  function saveCurrentArchive() {
+    const label = document.getElementById('archiveLabel').value.trim();
+    if (!label) { alert('Please enter a label for this archive.'); return; }
+
+    const current = load();
+    if (!current) { alert('Nothing to archive — schedule is empty.'); return; }
+
+    const archives = getArchives();
+    archives.unshift({
+      ts:    Date.now(),
+      label: label,
+      lab:   _activeLab,
+      data:  current,
+    });
+    saveArchives(archives);
+
+    // Refresh panel
+    openArchivePanel(true);
+    alert(`✅ Archived as "${label}"`);
+  }
+
+  function viewArchive(arc) {
+    document.getElementById('archiveOverlay').style.display = 'none';
+
+    const viewer  = document.getElementById('archiveViewerOverlay');
+    const content = document.getElementById('archiveViewerContent');
+    const title   = document.getElementById('archiveViewerTitle');
+
+    title.textContent = `📦 ${arc.label}`;
+
+    // Build a read-only HTML table from the archived data
+    content.innerHTML = renderArchiveHTML(arc);
+    viewer.style.display = 'flex';
+  }
+
+  function renderArchiveHTML(arc) {
+    const d    = arc.data;
+    const cols = d.columns || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const rows = d.rows    || [];
+    const depts = d.departments || [];
+
+    function getDeptColor(id) {
+      const dept = depts.find(x => x.id === id);
+      return dept ? dept.color : '#2d5fa6';
+    }
+    function hexToRgba(hex, a) {
+      const h = hex.replace('#','');
+      const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    let html = `
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;color:#718096">Laboratory ${arc.lab || ''} · Saved ${new Date(arc.ts).toLocaleString()}</div>
+      </div>
+      <div style="overflow-x:auto">
+      <table style="border-collapse:collapse;font-size:11px;width:100%">
+        <thead>
+          <tr>`;
+
+    cols.forEach(col => {
+      html += `<th colspan="2" style="background:#1a3a6b;color:#fff;padding:8px 6px;text-align:center;font-size:11px;border:1px solid #163060">${esc(col)}</th>`;
+    });
+    html += `</tr><tr>`;
+    cols.forEach(() => {
+      html += `<th style="background:#1e4a8a;color:rgba(255,255,255,.8);font-size:9px;padding:3px 4px;text-align:center;border:1px solid #163060">Schedule</th>
+               <th style="background:#1e4a8a;color:rgba(255,255,255,.8);font-size:9px;padding:3px 4px;text-align:center;border:1px solid #163060;width:60px">Time</th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    rows.forEach(row => {
+      if (row.type === 'lunch') {
+        html += `<tr><td colspan="${cols.length * 2}" style="background:#fff8e1;text-align:center;font-size:11px;font-weight:700;color:#795200;padding:7px;border:1px solid #ffe082;letter-spacing:.08em">🍽️ &nbsp; L U N C H &nbsp; B R E A K</td></tr>`;
+        return;
+      }
+      html += '<tr>';
+      const cells = row.cells || [];
+      let ci = 0;
+      while (ci < cols.length) {
+        const cell = cells[ci] || { type:'vacant' };
+        const cs = cell.colspan || 1;
+        const rs = cell.rowspan || 1;
+        const domCs = cs * 2;
+
+        if (cell.type === 'class') {
+          const color  = getDeptColor(cell.dept || '');
+          const bg     = hexToRgba(color, 0.09);
+          const border = `3px solid ${color}`;
+          html += `<td colspan="${domCs}" ${rs>1?`rowspan="${rs}"`:''}
+            style="border:1px solid #dde5ef;padding:0;vertical-align:top">
+            <div style="padding:7px 9px;border-left:${border};background:${bg}">
+              <div style="font-size:10.5px;font-weight:700;color:#2d5fa6">${esc(cell.subject)}</div>
+              <div style="font-size:10px;color:#1a3a6b">${esc(cell.instructor)}</div>
+              <div style="font-size:9.5px;color:#718096">${esc(cell.section)}</div>
+              ${cell.deptLabel ? `<div style="font-size:9px;color:#a0aec0;font-style:italic">${esc(cell.deptLabel)}</div>` : ''}
+            </div></td>
+            <td style="border:1px solid #dde5ef;background:#f7f9fc;text-align:center;font-size:10px;font-weight:600;color:#718096;width:60px;vertical-align:middle">${esc(cell.time||'')}</td>`;
+        } else {
+          html += `<td colspan="${domCs}" ${rs>1?`rowspan="${rs}"`:''}
+            style="border:1px solid #dde5ef;background:#fafbfc;text-align:center;color:#b0bec5;font-size:10px;font-style:italic;padding:10px 4px">
+            🔧 Vacant</td>`;
+        }
+        ci += cs;
+      }
+      html += '</tr>';
+    });
+
+    html += `</tbody></table></div>`;
+
+    // Legend
+    if (depts.length > 0) {
+      html += `<div style="margin-top:20px"><strong style="font-size:11px;color:#1a3a6b">Legend</strong><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">`;
+      depts.forEach(dept => {
+        html += `<div style="display:flex;align-items:center;gap:6px;font-size:11px">
+          <span style="width:12px;height:12px;border-radius:2px;background:${esc(dept.color)};flex-shrink:0;display:inline-block"></span>
+          ${esc(dept.label || dept.fullName)}
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    return html;
+  }
+
+  function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
   /* ══════════════════════ INIT ══════════════════════ */
   window.addEventListener('load', () => {
     initLabTabs();
@@ -983,6 +1225,7 @@
     initLogoUpload();
     initAutoBackup();
     initBackupPanel();
+    initArchive();
     /* restore logo if stored */
     const s = load();
     if (s && s.logoDataUrl) applyLogo(s.logoDataUrl);
