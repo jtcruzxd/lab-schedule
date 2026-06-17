@@ -60,8 +60,7 @@
     d.innerHTML =
       `<span class="cc-instructor">${esc(cell.instructor)}</span>` +
       `<span class="cc-subject">${esc(cell.subject)}</span>` +
-      `<span class="cc-section">${esc(cell.section)}</span>` +
-      `<span class="cc-time">${esc(cell.time)}</span>`;
+      `<span class="cc-section">${esc(cell.section)}</span>`;
     window.applyCardColor(d, cell.dept);
     return d;
   };
