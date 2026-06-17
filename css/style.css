@@ -943,3 +943,15 @@ body.compact .sched-table thead th.col-time-sub { width: 52px; }
 @media print {
   .sched-table td.time-col-per-day { width: 55px; font-size: 8px; }
 }
+
+/* ── Department label on class card ── */
+.class-card .cc-dept {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--clr-muted);
+  margin-top: 2px;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

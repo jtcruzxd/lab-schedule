@@ -540,7 +540,7 @@
     patchTableForEditor();
 
     /* Sync dept to legend AFTER saving */
-    syncDeptToLegend(deptRaw);
+    syncDeptToLegend(deptRaw, deptLabel);
 
     closeModal();
   });
@@ -724,10 +724,10 @@
   }
 
   /* ══════════════════════ DEPT → LEGEND SYNC ══════════════════════ */
-  function syncDeptToLegend(deptStr) {
+  function syncDeptToLegend(deptStr, fullLabel) {
     if (!deptStr) return;
     const id    = deptStr.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const label = deptStr.trim();
+    const label = fullLabel || deptStr.trim();
     const existing = SCHEDULE_DATA.departments.find(d => d.id === id || d.label.toLowerCase() === label.toLowerCase());
     if (existing) {
       document.querySelectorAll(`.class-card[data-dept="${id}"]`).forEach(c => window.applyCardColor(c, id));

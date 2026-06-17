@@ -57,10 +57,13 @@
     const d = el('div','class-card');
     d.dataset.dept = cell.dept || '';
     d.setAttribute('role','group');
+    // Use deptLabel (full dropdown text) if available, otherwise fall back to dept id
+    const deptDisplay = cell.deptLabel || cell.dept || '';
     d.innerHTML =
       `<span class="cc-instructor">${esc(cell.instructor)}</span>` +
       `<span class="cc-subject">${esc(cell.subject)}</span>` +
-      `<span class="cc-section">${esc(cell.section)}</span>`;
+      `<span class="cc-section">${esc(cell.section)}</span>` +
+      (deptDisplay ? `<span class="cc-dept">${esc(deptDisplay)}</span>` : '');
     window.applyCardColor(d, cell.dept);
     return d;
   };
