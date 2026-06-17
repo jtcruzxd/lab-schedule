@@ -955,3 +955,24 @@ body.compact .sched-table thead th.col-time-sub { width: 52px; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ════════════════════════════
+   BACKUP STATUS + PANEL
+   ════════════════════════════ */
+.backup-status {
+  font-size: 10px;
+  font-weight: 600;
+  color: #2e7d32;
+  margin-left: 10px;
+  opacity: 0;
+  transition: opacity .3s;
+}
+.backup-status.backup-flash {
+  opacity: 1;
+}
+
+/* Backup list item restore hover */
+#backupList li:hover {
+  border-color: var(--clr-primary-lt) !important;
+  background: #e8f0fb !important;
+}

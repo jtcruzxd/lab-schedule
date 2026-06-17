@@ -775,6 +775,107 @@
     return str.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   }
 
+  /* ══════════════════════ AUTO-BACKUP ══════════════════════ */
+  const BACKUP_KEY   = 'omsc_schedule_backups';
+  const MAX_BACKUPS  = 20;
+  const BACKUP_INTERVAL_MS = 10000; // 10 seconds
+
+  function getBackups() {
+    try { const s = localStorage.getItem(BACKUP_KEY); return s ? JSON.parse(s) : []; } catch(e) { return []; }
+  }
+
+  function saveBackups(list) {
+    try { localStorage.setItem(BACKUP_KEY, JSON.stringify(list)); } catch(e) {}
+  }
+
+  function createBackup() {
+    const current = load();
+    if (!current) return; // nothing to back up
+
+    const backups = getBackups();
+    const ts = Date.now();
+    const label = new Date(ts).toLocaleString();
+
+    // Avoid duplicate backup if nothing changed since last one
+    if (backups.length > 0) {
+      const lastData = JSON.stringify(backups[0].data);
+      const currData = JSON.stringify(current);
+      if (lastData === currData) return; // no change — skip
+    }
+
+    backups.unshift({ ts, label, data: current });
+    if (backups.length > MAX_BACKUPS) backups.splice(MAX_BACKUPS);
+    saveBackups(backups);
+
+    // Update status indicator
+    const statusEl = document.getElementById('backupStatus');
+    if (statusEl) {
+      statusEl.textContent = `✓ Backed up at ${new Date(ts).toLocaleTimeString()}`;
+      statusEl.classList.add('backup-flash');
+      setTimeout(() => statusEl.classList.remove('backup-flash'), 1200);
+    }
+  }
+
+  function initAutoBackup() {
+    setInterval(createBackup, BACKUP_INTERVAL_MS);
+  }
+
+  function initBackupPanel() {
+    const showBtn   = document.getElementById('showBackupsBtn');
+    const overlay   = document.getElementById('backupOverlay');
+    const closeBtn  = document.getElementById('backupClose');
+
+    if (showBtn) showBtn.addEventListener('click', openBackupPanel);
+    if (closeBtn) closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
+    if (overlay) overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+  }
+
+  function openBackupPanel() {
+    const overlay  = document.getElementById('backupOverlay');
+    const list     = document.getElementById('backupList');
+    const empty    = document.getElementById('backupEmpty');
+    const backups  = getBackups();
+
+    list.innerHTML = '';
+
+    if (backups.length === 0) {
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      backups.forEach((b, idx) => {
+        const li = document.createElement('li');
+        li.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#f7f9fc;border-radius:6px;border:1px solid #dde5ef;';
+
+        const info = document.createElement('div');
+        info.style.cssText = 'font-size:12px;';
+        info.innerHTML = `<strong style="color:#1a3a6b">${b.label}</strong>
+          <span style="font-size:10px;color:#718096;margin-left:6px">${idx === 0 ? '(latest)' : ''}</span>`;
+
+        const restoreBtn = document.createElement('button');
+        restoreBtn.className = 'btn btn-sm btn-primary';
+        restoreBtn.textContent = 'Restore';
+        restoreBtn.addEventListener('click', () => restoreBackup(b));
+
+        li.appendChild(info);
+        li.appendChild(restoreBtn);
+        list.appendChild(li);
+      });
+    }
+
+    overlay.style.display = 'flex';
+  }
+
+  function restoreBackup(backup) {
+    if (!confirm(`Restore backup from ${backup.label}? Current schedule will be replaced.`)) return;
+
+    // Save the backup data as the current schedule
+    try { localStorage.setItem('omsc_schedule_data', JSON.stringify(backup.data)); } catch(e) {}
+
+    // Close panel and reload to apply
+    document.getElementById('backupOverlay').style.display = 'none';
+    location.reload();
+  }
+
   /* ══════════════════════ INIT ══════════════════════ */
   window.addEventListener('load', () => {
     patchTableForEditor();
@@ -782,6 +883,8 @@
     attachCellHandlers();
     initHeaderFields();
     initLogoUpload();
+    initAutoBackup();
+    initBackupPanel();
     /* restore logo if stored */
     const s = load();
     if (s && s.logoDataUrl) applyLogo(s.logoDataUrl);

@@ -58,11 +58,29 @@
 
   <!-- ══ EDIT BANNER ══ -->
   <div class="edit-banner" id="editBanner" style="display:none">
-    <span>✏️ <strong>Edit Mode</strong> — Click any header text, cell, time label, legend item, or table column to edit</span>
+    <span>✏️ <strong>Edit Mode</strong> — Click any header text, cell, time label, legend item, or table column to edit
+      <span id="backupStatus" class="backup-status"></span>
+    </span>
     <div style="display:flex;gap:8px">
       <button class="btn btn-sm btn-outline" id="addColBtn">+ Column</button>
       <button class="btn btn-sm btn-outline" id="addRowBtn">+ Row</button>
+      <button class="btn btn-sm btn-outline" id="showBackupsBtn">🕓 Backups</button>
       <button class="btn btn-sm btn-danger"  id="resetAllBtn">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- ══ BACKUP PANEL ══ -->
+  <div class="modal-overlay" id="backupOverlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <h2 class="modal-title">Backups</h2>
+        <button class="modal-close" id="backupClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:#718096;margin-bottom:14px">Auto-saved every 10 seconds. Last 20 backups kept.</p>
+        <ul id="backupList" style="list-style:none;display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto"></ul>
+        <p id="backupEmpty" style="font-size:12px;color:#a0aec0;text-align:center;padding:20px 0">No backups yet.</p>
+      </div>
     </div>
   </div>
 
