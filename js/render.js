@@ -74,25 +74,48 @@
     const tbody  = document.getElementById('schedBody');
     if (!tbody || !thead) return;
 
-    /* ── column headers ── */
-    const headRow = document.getElementById('headRow');
-    headRow.innerHTML = '';
-    const timeTh = el('th','col-time','Time Slot');
-    headRow.appendChild(timeTh);
-    (SCHEDULE_DATA.columns || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']).forEach((col, ci) => {
-      const th = el('th','',esc(col));
-      th.dataset.colIndex = ci;
-      headRow.appendChild(th);
+    const cols    = SCHEDULE_DATA.columns || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const numCols = cols.length;
+
+    /* ── TWO HEADER ROWS ──
+       Row 1: Day names (each spans 2 cols: content + time)
+       Row 2: "Schedule" | "Time" repeated per day              */
+    thead.innerHTML = '';
+
+    const row1 = el('tr','head-row-days');
+    const row2 = el('tr','head-row-labels', '');
+    row2.id    = 'headRow'; // editor patches del-col buttons onto row2 ths
+
+    cols.forEach((col, ci) => {
+      /* Day group header spanning 2 cols */
+      const dayTh = el('th','col-day-group', esc(col));
+      dayTh.setAttribute('colspan', '2');
+      dayTh.dataset.colIndex = ci;   // needed for edit (rename / del)
+      row1.appendChild(dayTh);
+
+      /* Sub-headers */
+      const schedTh = el('th','col-sched','Schedule');
+      schedTh.dataset.colIndex = ci;
+      schedTh.dataset.subCol   = 'sched';
+
+      const timeTh2 = el('th','col-time-sub','Time');
+      timeTh2.dataset.colIndex = ci;
+      timeTh2.dataset.subCol   = 'time';
+
+      row2.appendChild(schedTh);
+      row2.appendChild(timeTh2);
     });
 
-    /* ── body rows ── */
-    tbody.innerHTML = '';
-    const numCols = (SCHEDULE_DATA.columns || []).length;
+    thead.appendChild(row1);
+    thead.appendChild(row2);
 
-    // Empty state — show a helper message
+    /* ── BODY ── */
+    tbody.innerHTML = '';
+
+    // Empty state
     if (numCols === 0 && SCHEDULE_DATA.rows.length === 0) {
       const tr = el('tr');
-      const td = el('td','','');
+      const td = el('td');
       td.setAttribute('colspan','1');
       td.style.cssText = 'text-align:center;padding:40px;color:#a0aec0;font-size:13px;font-style:italic;';
       td.textContent   = 'Schedule is empty. Use + Column and + Row to build your schedule.';
@@ -105,7 +128,7 @@
       if (row.type === 'lunch') {
         const tr = el('tr','row-lunch');
         const td = el('td','','🍽️&nbsp; L U N C H &nbsp; B R E A K');
-        td.setAttribute('colspan', numCols + 1);
+        td.setAttribute('colspan', numCols * 2);
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
@@ -114,25 +137,32 @@
       const tr = document.createElement('tr');
       tr.dataset.rowIndex = ri;
 
-      const timeTd = el('td','time-col', esc(row.label));
-      timeTd.setAttribute('scope','row');
-      tr.appendChild(timeTd);
-
-      /* expand cells to flat array of numCols */
       const flat = expandCells(row.cells, numCols);
+
       let ci = 0;
       while (ci < numCols) {
         const cell = flat[ci] || { type:'vacant' };
-        const td   = el('td','slot');
-        td.dataset.colIndex = ci;
+        const cs   = cell.colspan || 1;
+        const rs   = cell.rowspan || 1;
 
-        const rs = cell.rowspan || 1;
-        const cs = cell.colspan || 1;
-        if (rs > 1) td.setAttribute('rowspan', rs);
-        if (cs > 1) td.setAttribute('colspan', cs);
+        /* ── Schedule (content) cell ── */
+        const schedTd = el('td','slot');
+        schedTd.dataset.colIndex = ci;
+        if (rs > 1) schedTd.setAttribute('rowspan', rs);
+        if (cs > 1) schedTd.setAttribute('colspan', cs * 2); // each col = 2 DOM cols
+        schedTd.appendChild(cell.type === 'class' ? window.buildCard(cell) : window.buildVacant());
+        tr.appendChild(schedTd);
 
-        td.appendChild(cell.type === 'class' ? window.buildCard(cell) : window.buildVacant());
-        tr.appendChild(td);
+        /* ── Time cell (only when colspan = 1 — merged cells skip it) ── */
+        if (cs === 1) {
+          const timeTd = el('td','time-col-per-day');
+          timeTd.dataset.colIndex = ci;
+          timeTd.dataset.isTime   = '1';
+          if (rs > 1) timeTd.setAttribute('rowspan', rs);
+          timeTd.textContent = cell.type === 'class' ? (cell.time || '') : '';
+          tr.appendChild(timeTd);
+        }
+
         ci += cs;
       }
 

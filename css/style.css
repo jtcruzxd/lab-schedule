@@ -863,3 +863,83 @@ body.edit-mode .sw-del-btn { display:inline; }
   color: #fff;
   border-color: var(--clr-primary);
 }
+
+/* ════════════════════════════
+   DAY + TIME COLUMN LAYOUT
+   ════════════════════════════ */
+
+/* Day group header (spans 2 cols) */
+.sched-table thead th.col-day-group {
+  background: var(--clr-primary);
+  color: #fff;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border: 1px solid #163060;
+  padding: 10px 6px 6px;
+  position: relative;
+}
+
+/* Sub-header row */
+.sched-table thead tr.head-row-labels th {
+  background: #1e4a8a;
+  color: rgba(255,255,255,.8);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 4px 4px;
+  border: 1px solid #163060;
+}
+
+/* Schedule sub-column */
+.sched-table thead th.col-sched { width: auto; }
+
+/* Time sub-column — narrow */
+.sched-table thead th.col-time-sub { width: 70px; }
+
+/* Per-day time data cells */
+.sched-table td.time-col-per-day {
+  background: #f7f9fc;
+  border: 1px solid var(--clr-border);
+  padding: 6px 5px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--clr-muted);
+  vertical-align: middle;
+  white-space: nowrap;
+  width: 70px;
+  min-width: 60px;
+}
+
+/* Edit mode: time cell clickable */
+body.edit-mode .sched-table td.time-col-per-day {
+  cursor: text;
+}
+body.edit-mode .sched-table td.time-col-per-day:hover {
+  background: #fef9e7;
+  color: var(--clr-primary);
+  outline: 1.5px dashed var(--clr-accent);
+  outline-offset: -2px;
+}
+
+/* Del row button — positioned inside first slot */
+.slot { position: relative; }
+.del-row-btn {
+  position: absolute;
+  top: 2px; left: 2px;
+  z-index: 10;
+}
+
+/* Compact mode adjustments */
+body.compact .sched-table td.time-col-per-day { font-size: 9px; width: 52px; min-width: 48px; padding: 3px; }
+body.compact .sched-table thead th.col-time-sub { width: 52px; }
+
+/* Print: keep time cols */
+@media print {
+  .sched-table td.time-col-per-day { width: 55px; font-size: 8px; }
+}

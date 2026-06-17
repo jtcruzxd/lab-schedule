@@ -154,85 +154,91 @@
       el.addEventListener('blur', () => { if (document.body.classList.contains('edit-mode')) persistAllHeader(); });
       el.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); el.blur(); } });
     });
-    /* editable column headers */
+    /* editable column headers — dblclick on day-group th in row1 */
     document.getElementById('schedHead').addEventListener('dblclick', e => {
       if (!document.body.classList.contains('edit-mode')) return;
-      const th = e.target.closest('th');
-      if (!th || th.classList.contains('col-time')) return;
+      const th = e.target.closest('th.col-day-group');
+      if (!th) return;
       const ci = parseInt(th.dataset.colIndex, 10);
       if (isNaN(ci)) return;
       editColumnHeader(th, ci);
     });
   }
   function editColumnHeader(th, ci) {
-    const orig = th.textContent;
+    // Strip del-btn text from value
+    const orig = (th.firstChild && th.firstChild.nodeType === 3)
+      ? th.firstChild.textContent.trim()
+      : th.textContent.replace('✕','').trim();
     const inp  = document.createElement('input');
     inp.type = 'text'; inp.value = orig;
-    inp.style.cssText = 'width:100%;font-size:11px;background:rgba(255,255,255,.2);border:none;color:#fff;text-align:center;padding:2px 4px;';
-    th.textContent = '';
+    inp.style.cssText = 'width:80%;font-size:11px;background:rgba(255,255,255,.2);border:none;color:#fff;text-align:center;padding:2px 4px;';
+    th.innerHTML = '';
     th.appendChild(inp);
     inp.focus(); inp.select();
     function commit() {
       const v = inp.value.trim() || orig;
       if (!SCHEDULE_DATA.columns) SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
       SCHEDULE_DATA.columns[ci] = v;
-      th.textContent = v;
-      th.dataset.colIndex = ci;
       patch('columns', SCHEDULE_DATA.columns);
+      window.renderTable();
+      patchTableForEditor();
     }
     inp.addEventListener('blur', commit);
-    inp.addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();inp.blur();} if(e.key==='Escape'){th.textContent=orig;} });
+    inp.addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();inp.blur();} if(e.key==='Escape'){window.renderTable();patchTableForEditor();} });
   }
 
   /* ══════════════════════ TABLE PATCHING ══════════════════════ */
   function patchTableForEditor() {
     const tbody = document.getElementById('schedBody');
     if (!tbody) return;
+
     let si = 0;
     Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
-      const tc = tr.querySelector('.time-col');
-      if (!tc) {
-        // lunch row — advance past the lunch entry in SCHEDULE_DATA
+      // Lunch row has the row-lunch class — skip it
+      if (tr.classList.contains('row-lunch')) {
         while (si < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[si].type !== 'lunch') si++;
         si++; return;
       }
+
       while (si < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[si].type !== 'normal') si++;
       if (si >= SCHEDULE_DATA.rows.length) return;
 
-      // Stamp the CURRENT index on the TR so click handlers always read it fresh
-      tr.dataset.rowIndex = si;
+      const capturedSi = si;
+      tr.dataset.rowIndex = capturedSi;
 
-      // Edit hint
-      if (!tc.querySelector('.edit-hint')) {
-        const h = document.createElement('span'); h.className = 'edit-hint'; h.textContent = '✎';
-        tc.appendChild(h);
+      // ── Row label cell: first .time-col-per-day in this row ──
+      // We no longer have a dedicated time-col for row label.
+      // Add a del-row overlay button on the first slot td instead.
+      const firstSlot = tr.querySelector('td.slot');
+      if (firstSlot) {
+        // Remove stale del-row btn
+        const stale = firstSlot.querySelector('.del-row-btn');
+        if (stale) stale.remove();
+
+        const d = document.createElement('button');
+        d.className = 'del-row-btn'; d.textContent = '✕'; d.title = 'Remove row';
+        d.addEventListener('click', e => { e.stopPropagation(); delRow(capturedSi); });
+        firstSlot.appendChild(d);
       }
-
-      // Delete-row button — remove stale ones first, then add fresh one with correct captured index
-      const existingDel = tc.querySelector('.del-row-btn');
-      if (existingDel) existingDel.remove();
-
-      const capturedSi = si; // capture correct index for this closure
-      const d = document.createElement('button');
-      d.className = 'del-row-btn'; d.textContent = '✕'; d.title = 'Remove row';
-      d.addEventListener('click', e => { e.stopPropagation(); delRow(capturedSi); });
-      tc.appendChild(d);
 
       // Stamp col index on every slot td
       let ci = 0;
-      tr.querySelectorAll('.slot').forEach(td => {
+      tr.querySelectorAll('td.slot').forEach(td => {
         td.dataset.colIndex = ci;
-        ci += parseInt(td.getAttribute('colspan') || '1', 10);
+        // Each slot occupies cs logical cols; its DOM colspan = cs*2 (sched+time per col)
+        const domColspan = parseInt(td.getAttribute('colspan') || '2', 10);
+        const logicalCs  = Math.max(1, Math.round(domColspan / 2));
+        ci += logicalCs;
       });
 
       si++;
     });
 
-    // Delete-column buttons in thead — always rebuild to avoid stale indices
-    const headRow = document.getElementById('headRow');
-    if (headRow) {
-      headRow.querySelectorAll('.del-col-btn').forEach(b => b.remove());
-      Array.from(headRow.querySelectorAll('th')).forEach(th => {
+    // ── Del-col buttons on day-group ths (row1) ──
+    const schedHead = document.getElementById('schedHead');
+    if (schedHead) {
+      schedHead.querySelectorAll('.del-col-btn').forEach(b => b.remove());
+      schedHead.querySelectorAll('th.col-day-group').forEach(th => {
         const ci = parseInt(th.dataset.colIndex, 10);
         if (isNaN(ci)) return;
         const d = document.createElement('button');
@@ -290,21 +296,58 @@
       if (!document.body.classList.contains('edit-mode')) return;
       const td = e.target.closest('td');
       if (!td) return;
-      if (td.classList.contains('time-col')) {
+
+      // Time sub-column — editable time value for a class cell
+      if (td.dataset.isTime === '1') {
         const tr = td.closest('tr');
         const ri = parseInt(tr.dataset.rowIndex, 10);
-        if (!isNaN(ri)) openTimeslotEditor(ri, td);
+        const ci = parseInt(td.dataset.colIndex, 10);
+        if (!isNaN(ri) && !isNaN(ci)) editTimeCell(ri, ci, td);
         return;
       }
+
       if (td.classList.contains('slot')) {
         const tr = td.closest('tr');
         const ri = parseInt(tr.dataset.rowIndex, 10);
         const ci = parseInt(td.dataset.colIndex, 10);
         if (!isNaN(ri) && !isNaN(ci)) {
           if (e.shiftKey) { openMergeModal(ri, ci); return; }
+          // Don't open modal if del-row-btn was clicked
+          if (e.target.classList.contains('del-row-btn')) return;
           openModal(ri, ci);
         }
       }
+    });
+  }
+
+  /* ── Inline time-cell editor ── */
+  function editTimeCell(ri, ci, td) {
+    const row  = SCHEDULE_DATA.rows[ri];
+    if (!row || row.type !== 'normal') return;
+    const nc   = (SCHEDULE_DATA.columns||[]).length || 6;
+    const flat = window.expandCells(row.cells, nc);
+    const cell = flat[ci];
+    if (!cell || cell.type !== 'class') return; // only editable for class cells
+
+    const cur = td.textContent;
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.value = cur; inp.className = 'form-control';
+    inp.style.cssText = 'width:100%;font-size:10px;padding:2px 4px;';
+    td.innerHTML = ''; td.appendChild(inp);
+    inp.focus(); inp.select();
+
+    function commit() {
+      const v = inp.value.trim();
+      cell.time = v;
+      flat[ci]  = cell;
+      row.cells = flat;
+      td.textContent = v;
+      persistAllCells();
+    }
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+      if (e.key === 'Escape') { td.textContent = cur; }
     });
   }
 
@@ -407,13 +450,12 @@
     document.getElementById('f_row').value      = ri;
     document.getElementById('f_col').value      = ci;
 
-    if (cell && cell.type==='class') {
+    if (cell && cell.type === 'class') {
       document.getElementById('f_subject').value = cell.subject    || '';
       document.getElementById('f_section').value = cell.section    || '';
       document.getElementById('f_course').value  = cell.course     || '';
       document.getElementById('f_teacher').value = cell.instructor || '';
       document.getElementById('f_time').value    = cell.time       || '';
-      /* show the human-readable label, fall back to raw dept id */
       const deptDisplay = cell.deptLabel || cell.dept || '';
       document.getElementById('f_dept').value    = deptDisplay;
       document.getElementById('modalTitle').textContent = 'Edit Class';
@@ -421,12 +463,11 @@
       form.reset();
       document.getElementById('f_day').value      = cols[ci] || '';
       document.getElementById('f_timeslot').value = row ? row.label : '';
-      document.getElementById('f_time').value     = row ? row.label : '';
       document.getElementById('modalTitle').textContent = 'Assign Class';
     }
     clearVal();
     overlay.style.display = 'flex';
-    setTimeout(()=>document.getElementById('f_subject').focus(), 40);
+    setTimeout(() => document.getElementById('f_subject').focus(), 40);
   }
 
   function closeModal() {
