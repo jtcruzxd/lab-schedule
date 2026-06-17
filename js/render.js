@@ -1,304 +1,295 @@
 /**
- * render.js — reads SCHEDULE_DATA and builds the DOM
+ * render.js — builds the DOM from SCHEDULE_DATA
  */
-
 (function () {
   'use strict';
 
+  /* ── tiny helpers ── */
   function el(tag, cls, html) {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
     if (html !== undefined) e.innerHTML = html;
     return e;
   }
-
-  function esc(str) {
-    return String(str || '')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  /* ── Dept color lookup (live, respects user edits) ── */
-  window.getDeptColor = function(deptId) {
-    const dept = SCHEDULE_DATA.departments.find(d => d.id === deptId);
-    return dept ? dept.color : '#cbd5e0';
-  };
+  /* ── expose for editor ── */
+  window.RenderHelpers = { el, esc };
 
-  /* ── Apply dept color to a card element ── */
-  window.applyCardColor = function(cardEl, deptId) {
+  /* ── dept color helpers ── */
+  window.getDeptColor = function(deptId) {
+    const d = SCHEDULE_DATA.departments.find(d => d.id === deptId);
+    return d ? d.color : '#2d5fa6';
+  };
+  window.hexToRgba = function(hex, alpha) {
+    const h = hex.replace('#','');
+    const r = parseInt(h.slice(0,2),16);
+    const g = parseInt(h.slice(2,4),16);
+    const b = parseInt(h.slice(4,6),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
+  window.applyCardColor = function(card, deptId) {
     const color = window.getDeptColor(deptId);
-    // Lighten the color for background (10% opacity)
-    cardEl.style.borderLeftColor = color;
-    cardEl.style.background = hexToRgba(color, 0.08);
-    // Update time badge
-    const badge = cardEl.querySelector('.cc-time');
+    card.style.borderLeftColor = color;
+    card.style.background = window.hexToRgba(color, 0.09);
+    const badge = card.querySelector('.cc-time');
     if (badge) badge.style.background = color;
   };
 
-  function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1,3),16);
-    const g = parseInt(hex.slice(3,5),16);
-    const b = parseInt(hex.slice(5,7),16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  }
+  /* ══════════════════════
+     VACANT CELL
+     ══════════════════════ */
+  window.buildVacant = function() {
+    const d = el('div','vacant-cell');
+    d.innerHTML = '<span class="vc-icon">🔧</span><span class="vc-text">Vacant</span>';
+    return d;
+  };
 
-  /* ── Vacant cell ── */
-  function buildVacant(label) {
-    const div = el('div','vacant-cell');
-    div.innerHTML = `<span class="vc-icon">🔧</span><span class="vc-text">${esc(label||'Vacant / Maintenance')}</span>`;
-    return div;
-  }
+  /* ══════════════════════
+     CLASS CARD
+     ══════════════════════ */
+  window.buildCard = function(cell) {
+    const d = el('div','class-card');
+    d.dataset.dept = cell.dept || '';
+    d.setAttribute('role','group');
+    d.innerHTML =
+      `<span class="cc-instructor">${esc(cell.instructor)}</span>` +
+      `<span class="cc-subject">${esc(cell.subject)}</span>` +
+      `<span class="cc-section">${esc(cell.section)}</span>` +
+      `<span class="cc-time">${esc(cell.time)}</span>`;
+    window.applyCardColor(d, cell.dept);
+    return d;
+  };
 
-  /* ── Class card ── */
-  function buildCard(cell) {
-    const div = el('div', `class-card`);
-    div.dataset.dept = cell.dept || '';
-    div.setAttribute('role','group');
-    div.setAttribute('aria-label',`${cell.instructor} – ${cell.subject}`);
-    div.innerHTML = `
-      <span class="cc-instructor">${esc(cell.instructor)}</span>
-      <span class="cc-subject">${esc(cell.subject)}</span>
-      <span class="cc-section">${esc(cell.section)}</span>
-      <span class="cc-time">${esc(cell.time)}</span>
-    `;
-    window.applyCardColor(div, cell.dept);
-    return div;
-  }
+  /* ══════════════════════
+     SCHEDULE TABLE
+     ══════════════════════ */
+  window.renderTable = function() {
+    const thead  = document.getElementById('schedHead');
+    const tbody  = document.getElementById('schedBody');
+    if (!tbody || !thead) return;
 
-  /* ── Schedule table ── */
-  function renderTable() {
-    const tbody = document.getElementById('schedBody');
-    if (!tbody) return;
+    /* ── column headers ── */
+    const headRow = document.getElementById('headRow');
+    headRow.innerHTML = '';
+    const timeTh = el('th','col-time','Time Slot');
+    headRow.appendChild(timeTh);
+    (SCHEDULE_DATA.columns || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']).forEach((col, ci) => {
+      const th = el('th','',esc(col));
+      th.dataset.colIndex = ci;
+      headRow.appendChild(th);
+    });
 
-    SCHEDULE_DATA.rows.forEach(row => {
+    /* ── body rows ── */
+    tbody.innerHTML = '';
+    const numCols = (SCHEDULE_DATA.columns || []).length;
+
+    SCHEDULE_DATA.rows.forEach((row, ri) => {
       if (row.type === 'lunch') {
         const tr = el('tr','row-lunch');
         const td = el('td','','🍽️&nbsp; L U N C H &nbsp; B R E A K');
-        td.setAttribute('colspan','7');
+        td.setAttribute('colspan', numCols + 1);
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
       }
 
       const tr = document.createElement('tr');
-      const timeTd = el('td','time-col');
-      timeTd.textContent = row.label;
+      tr.dataset.rowIndex = ri;
+
+      const timeTd = el('td','time-col', esc(row.label));
       timeTd.setAttribute('scope','row');
       tr.appendChild(timeTd);
 
-      row.cells.forEach(cell => {
-        const td = el('td','slot');
-        const span = cell.colspan || 1;
-        if (span > 1) td.setAttribute('colspan', span);
-        td.appendChild(cell.type === 'class'
-          ? buildCard(cell)
-          : buildVacant(cell.type === 'vacant-time' ? cell.label : null));
+      /* expand cells to flat array of numCols */
+      const flat = expandCells(row.cells, numCols);
+      let ci = 0;
+      while (ci < numCols) {
+        const cell = flat[ci] || { type:'vacant' };
+        const td   = el('td','slot');
+        td.dataset.colIndex = ci;
+
+        const rs = cell.rowspan || 1;
+        const cs = cell.colspan || 1;
+        if (rs > 1) td.setAttribute('rowspan', rs);
+        if (cs > 1) td.setAttribute('colspan', cs);
+
+        td.appendChild(cell.type === 'class' ? window.buildCard(cell) : window.buildVacant());
         tr.appendChild(td);
-      });
+        ci += cs;
+      }
 
       tbody.appendChild(tr);
     });
-  }
+  };
 
-  /* ── Legend ── */
+  /* expand cells array to flat numCols-wide array */
+  window.expandCells = function(cells, numCols) {
+    const flat = [];
+    (cells||[]).forEach(c => {
+      const span = c.colspan || 1;
+      const rs   = c.rowspan || 1;
+      for (let i = 0; i < span; i++) {
+        flat.push(i === 0 ? {...c, colspan:undefined, rowspan: rs > 1 ? rs : undefined} : { type:'vacant' });
+      }
+    });
+    const n = numCols || 6;
+    while (flat.length < n) flat.push({ type:'vacant' });
+    return flat.slice(0, n);
+  };
+
+  /* ══════════════════════
+     LEGEND
+     ══════════════════════ */
   window.renderLegend = function() {
     const list = document.getElementById('legendList');
     if (!list) return;
     list.innerHTML = '';
-
-    SCHEDULE_DATA.departments.forEach(dept => {
-      const li = el('li','legend-item');
-
-      // Swatch + color picker
-      const swWrap = el('span','legend-swatch-wrap');
-      const sw = el('span','legend-swatch');
-      sw.style.background = dept.color;
-      sw.dataset.deptId = dept.id;
-      const colorIn = document.createElement('input');
-      colorIn.type = 'color';
-      colorIn.value = dept.color;
-      colorIn.className = 'legend-color-input';
-      colorIn.dataset.deptId = dept.id;
-      colorIn.addEventListener('input', (e) => onLegendColorChange(dept.id, e.target.value));
-      swWrap.appendChild(sw);
-      swWrap.appendChild(colorIn);
-
-      // Editable label
-      const labelIn = document.createElement('input');
-      labelIn.type = 'text';
-      labelIn.className = 'legend-label-input';
-      labelIn.dataset.deptId = dept.id;
-      labelIn.value = dept.id !== 'vacant'
-        ? `${dept.label} – ${dept.fullName}`
-        : dept.fullName;
-      labelIn.addEventListener('change', (e) => onLegendLabelChange(dept.id, e.target.value));
-
-      li.appendChild(swWrap);
-      li.appendChild(labelIn);
-      list.appendChild(li);
+    SCHEDULE_DATA.departments.forEach((dept, idx) => {
+      list.appendChild(buildLegendItem(dept, idx));
     });
   };
 
-  function onLegendColorChange(deptId, color) {
-    // Update data
-    const dept = SCHEDULE_DATA.departments.find(d => d.id === deptId);
-    if (dept) dept.color = color;
-    // Update swatch
+  window.buildLegendItem = function(dept, idx) {
+    const li = el('li','legend-item');
+
+    /* swatch + color picker */
+    const wrap = el('span','legend-swatch-wrap');
+    const sw   = el('span','legend-swatch');
+    sw.style.background = dept.color;
+    sw.dataset.deptId   = dept.id;
+    const cp = document.createElement('input');
+    cp.type = 'color'; cp.value = dept.color;
+    cp.className = 'legend-color-input';
+    cp.dataset.deptId = dept.id;
+    cp.addEventListener('input', e => onLegendColor(dept.id, e.target.value));
+    wrap.appendChild(sw); wrap.appendChild(cp);
+
+    /* editable label */
+    const lbl = document.createElement('input');
+    lbl.type = 'text'; lbl.className = 'legend-label-input';
+    lbl.value = dept.id !== 'vacant' ? `${dept.label} – ${dept.fullName}` : dept.fullName;
+    lbl.addEventListener('change', e => onLegendLabel(dept.id, e.target.value));
+
+    /* delete btn */
+    const del = el('button','legend-del-btn','✕');
+    del.title = 'Remove';
+    del.addEventListener('click', () => {
+      SCHEDULE_DATA.departments.splice(idx, 1);
+      window.renderLegend();
+      window.persistMeta('deptColors',  buildDeptColorsMap());
+      window.persistMeta('deptLabels',  buildDeptLabelsMap());
+    });
+
+    li.appendChild(wrap); li.appendChild(lbl); li.appendChild(del);
+    return li;
+  };
+
+  function onLegendColor(deptId, color) {
+    const d = SCHEDULE_DATA.departments.find(x => x.id === deptId);
+    if (d) d.color = color;
     const sw = document.querySelector(`.legend-swatch[data-dept-id="${deptId}"]`);
     if (sw) sw.style.background = color;
-    // Update all class cards with this dept
-    document.querySelectorAll(`.class-card[data-dept="${deptId}"]`).forEach(card => {
-      window.applyCardColor(card, deptId);
-    });
-    // Update dept select option color indicator
-    updateDeptSelectColors();
-    // Persist
-    persistMetaChange('deptColors', buildDeptColorsMap());
+    document.querySelectorAll(`.class-card[data-dept="${deptId}"]`).forEach(c => window.applyCardColor(c, deptId));
+    window.persistMeta('deptColors', buildDeptColorsMap());
   }
 
-  function onLegendLabelChange(deptId, value) {
-    const dept = SCHEDULE_DATA.departments.find(d => d.id === deptId);
-    if (!dept) return;
-    // Parse "LABEL – Full Name" format
+  function onLegendLabel(deptId, value) {
+    const d = SCHEDULE_DATA.departments.find(x => x.id === deptId);
+    if (!d) return;
     const parts = value.split('–').map(s => s.trim());
-    if (parts.length >= 2) {
-      dept.label = parts[0];
-      dept.fullName = parts.slice(1).join('–').trim();
-    } else {
-      dept.fullName = value;
-    }
-    updateDeptSelectOptions();
-    persistMetaChange('deptLabels', buildDeptLabelsMap());
+    if (parts.length >= 2) { d.label = parts[0]; d.fullName = parts.slice(1).join('–').trim(); }
+    else d.fullName = value;
+    window.persistMeta('deptLabels', buildDeptLabelsMap());
   }
 
   function buildDeptColorsMap() {
-    const m = {};
-    SCHEDULE_DATA.departments.forEach(d => { m[d.id] = d.color; });
-    return m;
+    const m = {}; SCHEDULE_DATA.departments.forEach(d => { m[d.id] = d.color; }); return m;
   }
-
   function buildDeptLabelsMap() {
-    const m = {};
-    SCHEDULE_DATA.departments.forEach(d => { m[d.id] = { label: d.label, fullName: d.fullName }; });
-    return m;
+    const m = {}; SCHEDULE_DATA.departments.forEach(d => { m[d.id] = {label:d.label, fullName:d.fullName}; }); return m;
   }
 
-  function updateDeptSelectOptions() {
-    const sel = document.getElementById('f_dept');
-    if (!sel) return;
-    sel.innerHTML = '';
-    SCHEDULE_DATA.departments.filter(d => d.id !== 'vacant').forEach(dept => {
-      const opt = document.createElement('option');
-      opt.value = dept.id;
-      opt.textContent = `${dept.label} – ${dept.fullName}`;
-      sel.appendChild(opt);
-    });
-  }
-
-  function updateDeptSelectColors() {
-    // no-op visual (select options don't support custom colors cross-browser)
-  }
-
-  /* ── PC Inventory ── */
+  /* ══════════════════════
+     PC INVENTORY
+     ══════════════════════ */
   window.renderPC = function() {
     const wrap = document.getElementById('pcTableWrap');
     if (!wrap) return;
     wrap.innerHTML = '';
 
-    const tbl = el('table','pc-table');
-    tbl.setAttribute('aria-label','PC inventory');
-
-    const thead = el('thead');
-    const htr = el('tr');
-    ['Dept','Processor','≤ 2022','2023','2024','2025',''].forEach((h,i) => {
+    const tbl  = el('table','pc-table');
+    const head = el('thead');
+    const htr  = el('tr');
+    /* headers: Processor, ≤2022, 2023, 2024, 2025, del */
+    ['Processor','≤ 2022','2023','2024','2025',''].forEach((h,i) => {
       const th = el('th','',h);
-      if (i === 6) th.style.width = '20px'; // del col
+      if (i === 5) th.style.width = '20px';
       htr.appendChild(th);
     });
-    thead.appendChild(htr);
-    tbl.appendChild(thead);
+    head.appendChild(htr); tbl.appendChild(head);
 
-    const tbody = el('tbody', '', '');
+    const tbody = el('tbody');
+    SCHEDULE_DATA.pcInventory.forEach((row, idx) => tbody.appendChild(buildPcRow(row, idx)));
     tbl.appendChild(tbody);
 
-    SCHEDULE_DATA.pcInventory.forEach((row, idx) => {
-      tbody.appendChild(buildPcRow(row, idx));
-    });
-
-    // Total row
+    /* total row */
     const tfoot = el('tfoot');
-    const ftr = el('tr');
-    const ftd1 = el('td'); ftd1.setAttribute('colspan','2');
-    ftd1.innerHTML = '<strong>Total</strong>';
-    const ftd2 = el('td','',''); ftd2.id = 'pcTotalCell';
-    ftd2.innerHTML = `<input class="pc-cell-input" id="pcTotalInput" value="${esc(SCHEDULE_DATA.pcTotal)}" style="font-weight:700;" />`;
-    const ftd3 = el('td'); ftd3.setAttribute('colspan','3');
-    ftd3.innerHTML = `<span id="pcTotalLabel">${SCHEDULE_DATA.pcTotal} units</span>`;
-    ftr.appendChild(ftd1); ftr.appendChild(ftd2); ftr.appendChild(ftd3);
-    tfoot.appendChild(ftr);
-    tbl.appendChild(tfoot);
+    const ftr   = el('tr');
+    const lbl   = el('td',''); lbl.setAttribute('colspan','1'); lbl.innerHTML = '<strong>Total</strong>';
+    const valTd = el('td',''); valTd.setAttribute('colspan','4');
+    const valIn = document.createElement('input');
+    valIn.className = 'pc-cell-input'; valIn.id = 'pcTotalInput';
+    valIn.value = String(SCHEDULE_DATA.pcTotal);
+    valIn.addEventListener('change', e => {
+      SCHEDULE_DATA.pcTotal = e.target.value.trim();
+      window.persistMeta('pcTotal', SCHEDULE_DATA.pcTotal);
+    });
+    valTd.appendChild(valIn);
+    ftr.appendChild(lbl); ftr.appendChild(valTd); tfoot.appendChild(ftr); tbl.appendChild(tfoot);
 
     wrap.appendChild(tbl);
 
-    // Add row button
     const addBtn = el('button','pc-add-row-btn','+ Add Row');
-    addBtn.addEventListener('click', addPcRow);
-    wrap.appendChild(addBtn);
-
-    // Wire total input
-    document.getElementById('pcTotalInput').addEventListener('change', (e) => {
-      const v = e.target.value.trim();
-      SCHEDULE_DATA.pcTotal = v;
-      document.getElementById('pcTotalLabel').textContent = `${v} units`;
-      persistMetaChange('pcTotal', v);
+    addBtn.addEventListener('click', () => {
+      SCHEDULE_DATA.pcInventory.push({ processor:'', y2022:0, y2023:0, y2024:0, y2025:0 });
+      window.renderPC();
+      window.persistMeta('pcInventory', SCHEDULE_DATA.pcInventory.map(r=>({...r})));
     });
-
-    wireAllPcInputs();
+    wrap.appendChild(addBtn);
   };
 
   function buildPcRow(row, idx) {
     const tr = el('tr');
     tr.dataset.pcIdx = idx;
-    const keys = ['dept','processor','y2022','y2023','y2024','y2025'];
-    keys.forEach((k,i) => {
-      const td = el('td');
+    /* keys — no dept */
+    ['processor','y2022','y2023','y2024','y2025'].forEach((k,i) => {
+      const td  = el('td');
       const inp = document.createElement('input');
       inp.className = 'pc-cell-input' + (i===0?' left':'');
       inp.value = row[k] !== undefined ? String(row[k]) : '';
-      inp.dataset.key = k;
       inp.addEventListener('change', () => {
         row[k] = inp.value.trim();
-        persistMetaChange('pcInventory', SCHEDULE_DATA.pcInventory.map(r=>({...r})));
+        window.persistMeta('pcInventory', SCHEDULE_DATA.pcInventory.map(r=>({...r})));
       });
-      td.appendChild(inp);
-      tr.appendChild(td);
+      td.appendChild(inp); tr.appendChild(td);
     });
-    // Del button
-    const delTd = el('td');
+    const delTd  = el('td');
     const delBtn = el('button','pc-del-btn','✕');
-    delBtn.title = 'Remove row';
     delBtn.addEventListener('click', () => {
       SCHEDULE_DATA.pcInventory.splice(idx, 1);
       window.renderPC();
-      persistMetaChange('pcInventory', SCHEDULE_DATA.pcInventory.map(r=>({...r})));
+      window.persistMeta('pcInventory', SCHEDULE_DATA.pcInventory.map(r=>({...r})));
     });
-    delTd.appendChild(delBtn);
-    tr.appendChild(delTd);
+    delTd.appendChild(delBtn); tr.appendChild(delTd);
     return tr;
   }
 
-  function addPcRow() {
-    const newRow = { dept:'', processor:'', y2022:0, y2023:0, y2024:0, y2025:0 };
-    SCHEDULE_DATA.pcInventory.push(newRow);
-    window.renderPC();
-    persistMetaChange('pcInventory', SCHEDULE_DATA.pcInventory.map(r=>({...r})));
-  }
-
-  function wireAllPcInputs() {
-    // already wired in buildPcRow
-  }
-
-  /* ── Software ── */
+  /* ══════════════════════
+     SOFTWARE IN USE
+     ══════════════════════ */
   window.renderSoftware = function() {
     const wrap = document.getElementById('softwareList');
     if (!wrap) return;
@@ -309,91 +300,84 @@
     });
 
     const addBtn = el('button','sw-add-btn','+ Add Row');
-    addBtn.addEventListener('click', addSwRow);
+    addBtn.addEventListener('click', () => {
+      SCHEDULE_DATA.software.push({ dept:'', programs:'' });
+      window.renderSoftware();
+      window.persistMeta('software', SCHEDULE_DATA.software.map(s=>({...s})));
+    });
     wrap.appendChild(addBtn);
   };
 
   function buildSwRow(item, idx) {
     const row = el('div','software-item');
-    row.dataset.swIdx = idx;
 
-    const dtInput = document.createElement('input');
-    dtInput.className = 'sw-input sw-dept';
-    dtInput.value = item.dept;
-    dtInput.placeholder = 'Dept';
-    dtInput.addEventListener('change', () => {
-      item.dept = dtInput.value.trim();
-      persistMetaChange('software', SCHEDULE_DATA.software.map(s=>({...s})));
+    const deptIn = document.createElement('input');
+    deptIn.className = 'sw-input sw-dept';
+    deptIn.value = item.dept;
+    deptIn.addEventListener('change', () => {
+      item.dept = deptIn.value.trim();
+      window.persistMeta('software', SCHEDULE_DATA.software.map(s=>({...s})));
     });
 
-    const ddInput = document.createElement('input');
-    ddInput.className = 'sw-input sw-prog';
-    ddInput.value = item.programs;
-    ddInput.placeholder = 'Programs used';
-    ddInput.addEventListener('change', () => {
-      item.programs = ddInput.value.trim();
-      persistMetaChange('software', SCHEDULE_DATA.software.map(s=>({...s})));
+    const progIn = document.createElement('input');
+    progIn.className = 'sw-input sw-prog';
+    progIn.value = item.programs;
+    progIn.addEventListener('change', () => {
+      item.programs = progIn.value.trim();
+      window.persistMeta('software', SCHEDULE_DATA.software.map(s=>({...s})));
     });
 
-    const delBtn = el('button','sw-del-btn','✕');
-    delBtn.title = 'Remove row';
-    delBtn.addEventListener('click', () => {
-      SCHEDULE_DATA.software.splice(idx, 1);
+    const del = el('button','sw-del-btn','✕');
+    del.addEventListener('click', () => {
+      SCHEDULE_DATA.software.splice(idx,1);
       window.renderSoftware();
-      persistMetaChange('software', SCHEDULE_DATA.software.map(s=>({...s})));
+      window.persistMeta('software', SCHEDULE_DATA.software.map(s=>({...s})));
     });
 
-    row.appendChild(dtInput);
-    row.appendChild(ddInput);
-    row.appendChild(delBtn);
+    row.appendChild(deptIn); row.appendChild(progIn); row.appendChild(del);
     return row;
   }
 
-  function addSwRow() {
-    SCHEDULE_DATA.software.push({ dept:'', programs:'' });
-    window.renderSoftware();
-    persistMetaChange('software', SCHEDULE_DATA.software.map(s=>({...s})));
-  }
-
-  /* ── Dept select ── */
-  function initDeptSelect() {
-    updateDeptSelectOptions();
-  }
-
-  /* ── Compact toggle ── */
-  function initCompactToggle() {
+  /* ══════════════════════
+     COMPACT TOGGLE
+     ══════════════════════ */
+  function initCompact() {
     const btn = document.getElementById('toggleViewBtn');
     if (!btn) return;
     btn.addEventListener('click', () => {
-      const isCompact = document.body.classList.toggle('compact');
-      btn.setAttribute('aria-pressed', String(isCompact));
-      btn.innerHTML = isCompact
-        ? '<span class="btn-icon">🖥️</span> Full View'
-        : '<span class="btn-icon">📱</span> Compact View';
+      const c = document.body.classList.toggle('compact');
+      btn.setAttribute('aria-pressed', String(c));
+      btn.textContent = c ? '🖥️ Full View' : '📱 Compact';
     });
   }
 
-  /* ── Expose persist helper for editor.js ── */
-  window.persistMetaChange = function(key, value) {
+  /* ══════════════════════
+     PERSIST HELPER
+     ══════════════════════ */
+  window.persistMeta = function(key, value) {
     try {
       const raw = localStorage.getItem('omsc_schedule_data');
-      const stored = raw ? JSON.parse(raw) : {};
-      stored[key] = value;
-      localStorage.setItem('omsc_schedule_data', JSON.stringify(stored));
+      const s = raw ? JSON.parse(raw) : {};
+      s[key] = value;
+      localStorage.setItem('omsc_schedule_data', JSON.stringify(s));
     } catch(e) {}
   };
 
-  /* ── Init ── */
+  /* ══════════════════════
+     INIT
+     ══════════════════════ */
   document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.__applyScheduleOverrides === 'function') {
       window.__applyScheduleOverrides();
     }
-    renderTable();
+    if (!SCHEDULE_DATA.columns) {
+      SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    }
+    window.renderTable();
     window.renderLegend();
     window.renderPC();
     window.renderSoftware();
-    initDeptSelect();
-    initCompactToggle();
+    initCompact();
   });
 
 })();

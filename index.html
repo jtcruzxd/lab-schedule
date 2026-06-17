@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Computer Laboratory Schedule – OMSC CAST" />
   <title>Computer Lab Schedule | OMSC CAST</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -12,71 +11,67 @@
   <a href="#schedule" class="skip-link">Skip to schedule</a>
 
   <!-- ══ HEADER ══ -->
-  <header class="site-header" id="siteHeader">
+  <header class="site-header">
     <div class="header-inner">
 
-      <!-- Logo / Crest -->
       <div class="header-crest" id="headerCrest">
-        <div class="crest-circle" id="crestCircle">
-          <span class="crest-top" id="crestTop">OMSC</span>
+        <!-- Placeholder crest (shown when no logo) -->
+        <div class="crest-circle" id="crestPlaceholder">
+          <span class="crest-top">OMSC</span>
           <span class="crest-star">★</span>
-          <span class="crest-bot" id="crestBot">EST. 1969</span>
+          <span class="crest-bot">EST. 1969</span>
         </div>
-        <!-- Logo image (hidden until uploaded) -->
-        <img id="logoImg" class="logo-img" src="" alt="Institution logo" hidden />
-        <!-- Upload trigger (edit mode only) -->
-        <label class="logo-upload-btn" id="logoUploadBtn" title="Upload logo" hidden>
-          📷
-          <input type="file" id="logoFileInput" accept="image/*" style="display:none" />
+        <!-- Uploaded logo -->
+        <img id="logoImg" class="logo-img" src="" alt="Logo" style="display:none" />
+        <!-- Upload btn — edit mode only -->
+        <label class="logo-upload-btn" id="logoUploadBtn" style="display:none" title="Upload logo">
+          📷<input type="file" id="logoFileInput" accept="image/*" style="display:none" />
         </label>
       </div>
 
       <div class="header-text">
-        <p class="republic" id="hRepublic" data-field="republic">Republic of the Philippines</p>
-        <h1 id="hInstitution" data-field="institution">Occidental Mindoro State College</h1>
-        <p class="college" id="hCollege" data-field="college">College of Arts, Sciences and Technology</p>
-        <p class="contact" id="hContact" data-field="contact">San Jose, Occidental Mindoro · www.omsc.edu.ph · omsc_9747@yahoo.com · Tel/Fax: (043) 491-1460</p>
+        <p class="republic"    id="hRepublic"    data-field="republic">Republic of the Philippines</p>
+        <h1                    id="hInstitution" data-field="institution">Occidental Mindoro State College</h1>
+        <p class="college"     id="hCollege"     data-field="college">College of Arts, Sciences and Technology</p>
+        <p class="contact"     id="hContact"     data-field="contact">San Jose, Occidental Mindoro · www.omsc.edu.ph · omsc_9747@yahoo.com · Tel/Fax: (043) 491-1460</p>
       </div>
 
       <div class="header-badge">
         <span class="badge-label">Academic Year</span>
-        <span class="badge-sem" id="hSemester" data-field="semester">1st Semester</span>
-        <span class="badge-year" id="hYear" data-field="academicYear">2026 – 2027</span>
+        <span class="badge-sem"  id="hSemester"     data-field="semester">1st Semester</span>
+        <span class="badge-year" id="hYear"          data-field="academicYear">2026 – 2027</span>
       </div>
-
     </div>
   </header>
 
   <!-- ══ TOOLBAR ══ -->
-  <div class="toolbar" role="toolbar" aria-label="Schedule actions">
+  <div class="toolbar" role="toolbar">
     <div class="toolbar-left">
       <span class="toolbar-title" id="toolbarTitle" data-field="labTitle">🖥️ Computer Laboratory — Main Campus</span>
     </div>
     <div class="toolbar-right">
-      <button class="btn btn-outline" id="toggleViewBtn" aria-pressed="false">
-        <span class="btn-icon">📱</span> Compact View
-      </button>
-      <button class="btn btn-outline" id="editModeBtn" aria-pressed="false">
-        <span class="btn-icon">✏️</span> Edit Schedule
-      </button>
-      <button class="btn btn-primary" onclick="window.print()">
-        <span class="btn-icon">🖨️</span> Print
-      </button>
+      <button class="btn btn-outline" id="toggleViewBtn" aria-pressed="false">📱 Compact</button>
+      <button class="btn btn-outline" id="editModeBtn"   aria-pressed="false">✏️ Edit Schedule</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print</button>
     </div>
   </div>
 
   <!-- ══ EDIT BANNER ══ -->
-  <div class="edit-banner" id="editBanner" hidden>
-    <span>✏️ <strong>Edit Mode ON</strong> — Click header text to edit · Click legend colors · Click table cells · Click time labels</span>
-    <button class="btn btn-sm btn-danger" id="resetAllBtn">↺ Reset to Default</button>
+  <div class="edit-banner" id="editBanner" style="display:none">
+    <span>✏️ <strong>Edit Mode</strong> — Click any header text, cell, time label, legend item, or table column to edit</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sm btn-outline" id="addColBtn">+ Column</button>
+      <button class="btn btn-sm btn-outline" id="addRowBtn">+ Row</button>
+      <button class="btn btn-sm btn-danger"  id="resetAllBtn">↺ Reset</button>
+    </div>
   </div>
 
   <!-- ══ CLASS ENTRY MODAL ══ -->
-  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+  <div class="modal-overlay" id="modalOverlay" style="display:none" role="dialog" aria-modal="true">
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title" id="modalTitle">Assign Class</h2>
-        <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+        <button class="modal-close" id="modalClose">&times;</button>
       </div>
       <div class="modal-body">
         <form id="classForm" novalidate autocomplete="off">
@@ -85,51 +80,50 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="f_day">Day</label>
+              <label>Day</label>
               <input type="text" id="f_day" class="form-control" readonly />
             </div>
             <div class="form-group">
-              <label for="f_timeslot">Time Slot Label</label>
-              <input type="text" id="f_timeslot" class="form-control" placeholder="e.g. 9:15 – 10:45" />
+              <label>Time Slot</label>
+              <input type="text" id="f_timeslot" class="form-control" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-group form-group--full">
-              <label for="f_subject">Subject <span class="req">*</span></label>
-              <input type="text" id="f_subject" class="form-control" placeholder="e.g. Computer Programming 1" required />
+              <label>Subject <span class="req">*</span></label>
+              <input type="text" id="f_subject" class="form-control" required />
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="f_section">Year &amp; Section <span class="req">*</span></label>
-              <input type="text" id="f_section" class="form-control" placeholder="e.g. BSIT 1A" required />
+              <label>Year &amp; Section <span class="req">*</span></label>
+              <input type="text" id="f_section" class="form-control" required />
             </div>
             <div class="form-group">
-              <label for="f_course">Course</label>
-              <input type="text" id="f_course" class="form-control" placeholder="e.g. BSIT" />
+              <label>Course</label>
+              <input type="text" id="f_course" class="form-control" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="f_teacher">Teacher <span class="req">*</span></label>
-              <input type="text" id="f_teacher" class="form-control" placeholder="e.g. Mr. Santos" required />
+              <label>Teacher <span class="req">*</span></label>
+              <input type="text" id="f_teacher" class="form-control" required />
             </div>
             <div class="form-group">
-              <label for="f_time">Class Time</label>
-              <input type="text" id="f_time" class="form-control" placeholder="e.g. 9:15 – 10:45" />
+              <label>Class Time</label>
+              <input type="text" id="f_time" class="form-control" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-group form-group--full">
-              <label for="f_dept">Department</label>
-              <select id="f_dept" class="form-control">
-                <!-- Populated dynamically from departments data -->
-              </select>
+              <label>Department</label>
+              <input type="text" id="f_dept" class="form-control" />
             </div>
           </div>
+
           <div class="modal-actions">
             <button type="button" class="btn btn-danger btn-sm" id="clearCellBtn">Clear Cell</button>
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px">
               <button type="button" class="btn btn-outline" id="modalCancelBtn">Cancel</button>
               <button type="submit" class="btn btn-primary">Save</button>
             </div>
@@ -139,19 +133,40 @@
     </div>
   </div>
 
+  <!-- ══ MERGE ROWS MODAL ══ -->
+  <div class="modal-overlay" id="mergeOverlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-header">
+        <h2 class="modal-title">Merge / Split Cell</h2>
+        <button class="modal-close" id="mergeClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Row span (number of rows to merge down)</label>
+          <input type="number" id="merge_span" class="form-control" min="1" max="20" value="1" />
+        </div>
+        <p style="font-size:11px;color:#718096;margin-bottom:14px">Set to 1 to un-merge (split back to single cell).</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="mergeCancelBtn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="mergeApplyBtn">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ SCHEDULE ══ -->
   <main id="schedule" class="main-content">
-    <div class="table-scroll" role="region" aria-label="Lab schedule table" tabindex="0">
+    <div class="table-scroll">
       <table class="sched-table" id="schedTable">
-        <thead>
-          <tr>
-            <th scope="col" class="col-time">Time Slot</th>
-            <th scope="col">Monday</th>
-            <th scope="col">Tuesday</th>
-            <th scope="col">Wednesday</th>
-            <th scope="col">Thursday</th>
-            <th scope="col">Friday</th>
-            <th scope="col">Saturday</th>
+        <thead id="schedHead">
+          <tr id="headRow">
+            <th class="col-time">Time Slot</th>
+            <th>Monday</th>
+            <th>Tuesday</th>
+            <th>Wednesday</th>
+            <th>Thursday</th>
+            <th>Friday</th>
+            <th>Saturday</th>
           </tr>
         </thead>
         <tbody id="schedBody"></tbody>
@@ -160,20 +175,21 @@
   </main>
 
   <!-- ══ INFO STRIP ══ -->
-  <section class="info-strip" aria-label="Additional information">
+  <section class="info-strip">
     <div class="info-grid">
 
-      <div class="info-card" id="legendCard">
+      <div class="info-card">
         <h2 class="card-title">Legend</h2>
         <ul class="legend-list" id="legendList"></ul>
+        <button class="sw-add-btn" id="addLegendBtn" style="display:none">+ Add Entry</button>
       </div>
 
-      <div class="info-card" id="pcCard">
+      <div class="info-card">
         <h2 class="card-title">PC Inventory</h2>
         <div id="pcTableWrap"></div>
       </div>
 
-      <div class="info-card" id="softwareCard">
+      <div class="info-card">
         <h2 class="card-title">Software in Use</h2>
         <div id="softwareList"></div>
       </div>

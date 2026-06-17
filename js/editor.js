@@ -1,448 +1,420 @@
 /**
- * editor.js — Full schedule editor
- *
- * Features:
- * - Editable header fields (click-to-edit contenteditable)
- * - Logo upload
- * - Editable legend (color picker + label)
- * - Editable PC inventory + software rows
- * - Editable time slots
- * - Cell class entry modal
- * - localStorage persistence
- * - Dept color syncs to schedule cards
+ * editor.js — full schedule editor
  */
-
 (function () {
   'use strict';
 
   const STORAGE_KEY = 'omsc_schedule_data';
-  const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-  /* ══════════════════════
-     STORAGE HELPERS
-     ══════════════════════ */
-  function loadData() {
-    try {
-      const s = localStorage.getItem(STORAGE_KEY);
-      return s ? JSON.parse(s) : null;
-    } catch(e) { return null; }
-  }
+  /* ══════════════════════ STORAGE ══════════════════════ */
+  function load()      { try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; } }
+  function save(data)  { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {} }
+  function get()       { return load() || {}; }
+  function patch(k, v) { const s = get(); s[k] = v; save(s); }
 
-  function saveData(data) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
-  }
-
-  function getStored() { return loadData() || {}; }
-
-  function patchStored(key, value) {
-    const s = getStored();
-    s[key] = value;
-    saveData(s);
-  }
-
-  /* ══════════════════════
-     APPLY OVERRIDES (pre-render)
-     ══════════════════════ */
+  /* ══════════════════════ APPLY OVERRIDES ══════════════════════ */
   function applyOverrides() {
-    const s = loadData();
+    const s = load();
     if (!s) return;
 
-    // Row labels
-    if (s.rowLabels) {
-      s.rowLabels.forEach((lbl, i) => {
-        const row = SCHEDULE_DATA.rows[i];
-        if (row && row.type === 'normal' && lbl !== null) row.label = lbl;
-      });
-    }
+    if (s.columns)       SCHEDULE_DATA.columns      = s.columns;
+    if (s.rowLabels)     s.rowLabels.forEach((l,i) => { const r = SCHEDULE_DATA.rows[i]; if (r && r.type==='normal' && l!==null) r.label = l; });
+    if (s.cells)         Object.entries(s.cells).forEach(([k,cell]) => { const [ri,ci] = k.split('-').map(Number); const row = SCHEDULE_DATA.rows[ri]; if (!row||row.type!=='normal') return; const nc = SCHEDULE_DATA.columns ? SCHEDULE_DATA.columns.length : 6; const flat = window.expandCells(row.cells, nc); flat[ci] = cell===null?{type:'vacant'}:cell; row.cells = flat; });
+    if (s.deptColors)    Object.entries(s.deptColors).forEach(([id,c]) => { const d = SCHEDULE_DATA.departments.find(x=>x.id===id); if(d) d.color=c; });
+    if (s.deptLabels)    Object.entries(s.deptLabels).forEach(([id,v]) => { const d = SCHEDULE_DATA.departments.find(x=>x.id===id); if(d) { d.label=v.label; d.fullName=v.fullName; } });
+    if (s.pcInventory)   SCHEDULE_DATA.pcInventory   = s.pcInventory;
+    if (s.pcTotal!==undefined) SCHEDULE_DATA.pcTotal = s.pcTotal;
+    if (s.software)      SCHEDULE_DATA.software      = s.software;
+    if (s.logoDataUrl)   applyLogo(s.logoDataUrl);
 
-    // Cell overrides
-    if (s.cells) {
-      Object.entries(s.cells).forEach(([key, cell]) => {
-        const [ri, ci] = key.split('-').map(Number);
-        const row = SCHEDULE_DATA.rows[ri];
-        if (!row || row.type !== 'normal') return;
-        const flat = expandCells(row.cells);
-        flat[ci] = cell === null ? { type:'vacant' } : cell;
-        row.cells = flat;
-      });
-    }
+    /* header text */
+    const metaMap = { republic:'hRepublic', institution:'hInstitution', college:'hCollege', contact:'hContact', semester:'hSemester', academicYear:'hYear', labTitle:'toolbarTitle', sig1Name:'sig1Name', sig1Role:'sig1Role', sig2Name:'sig2Name', sig2Role:'sig2Role' };
+    Object.entries(metaMap).forEach(([f,id]) => { if (s[f]!==undefined) { const el = document.getElementById(id); if(el) el.textContent = s[f]; } });
+  }
+  window.__applyScheduleOverrides = applyOverrides;
 
-    // Dept colors
-    if (s.deptColors) {
-      Object.entries(s.deptColors).forEach(([id, color]) => {
-        const dept = SCHEDULE_DATA.departments.find(d => d.id === id);
-        if (dept) dept.color = color;
-      });
-    }
+  /* ══════════════════════ LOGO ══════════════════════ */
+  function applyLogo(dataUrl) {
+    const img    = document.getElementById('logoImg');
+    const crest  = document.getElementById('crestPlaceholder');
+    if (img)   { img.src = dataUrl; img.style.display = 'block'; }
+    if (crest) { crest.style.display = 'none'; }
+  }
 
-    // Dept labels
-    if (s.deptLabels) {
-      Object.entries(s.deptLabels).forEach(([id, val]) => {
-        const dept = SCHEDULE_DATA.departments.find(d => d.id === id);
-        if (dept) { dept.label = val.label; dept.fullName = val.fullName; }
-      });
-    }
-
-    // PC inventory
-    if (s.pcInventory) SCHEDULE_DATA.pcInventory = s.pcInventory;
-    if (s.pcTotal !== undefined) SCHEDULE_DATA.pcTotal = s.pcTotal;
-
-    // Software
-    if (s.software) SCHEDULE_DATA.software = s.software;
-
-    // Header / meta text fields
-    const metaFields = ['republic','institution','college','contact','semester','academicYear','labTitle','sig1Name','sig1Role','sig2Name','sig2Role'];
-    metaFields.forEach(f => {
-      if (s[f] !== undefined) {
-        const el = document.getElementById(fieldToId(f));
-        if (el) el.textContent = s[f];
-      }
+  function initLogoUpload() {
+    document.getElementById('logoFileInput').addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => { applyLogo(e.target.result); patch('logoDataUrl', e.target.result); };
+      reader.readAsDataURL(file);
     });
-
-    // Logo
-    if (s.logoDataUrl) {
-      applyLogo(s.logoDataUrl);
-    }
   }
 
-  function fieldToId(field) {
-    const map = {
-      republic: 'hRepublic', institution: 'hInstitution', college: 'hCollege',
-      contact: 'hContact', semester: 'hSemester', academicYear: 'hYear',
-      labTitle: 'toolbarTitle', sig1Name: 'sig1Name', sig1Role: 'sig1Role',
-      sig2Name: 'sig2Name', sig2Role: 'sig2Role'
-    };
-    return map[field] || field;
-  }
-
-  /* ══════════════════════
-     CELL HELPERS
-     ══════════════════════ */
-  function expandCells(cells) {
-    const flat = [];
-    (cells || []).forEach(c => {
-      const span = c.colspan || 1;
-      for (let i = 0; i < span; i++) {
-        flat.push(i === 0 ? { ...c, colspan: undefined } : { type:'vacant' });
-      }
-    });
-    while (flat.length < 6) flat.push({ type:'vacant' });
-    return flat.slice(0, 6);
-  }
-
-  function getCell(rowIndex, colIndex) {
-    const row = SCHEDULE_DATA.rows[rowIndex];
-    if (!row || row.type !== 'normal') return null;
-    return expandCells(row.cells)[colIndex] || { type:'vacant' };
-  }
-
-  function persistCell(ri, ci, cell) {
-    const s = getStored();
-    if (!s.cells) s.cells = {};
-    s.cells[`${ri}-${ci}`] = cell;
-    saveData(s);
-  }
-
-  function persistRowLabel(ri, label) {
-    const s = getStored();
-    if (!s.rowLabels) {
-      s.rowLabels = SCHEDULE_DATA.rows.map(r => r.type === 'normal' ? r.label : null);
-    }
-    s.rowLabels[ri] = label;
-    saveData(s);
-  }
-
-  /* ══════════════════════
-     EDIT MODE TOGGLE
-     ══════════════════════ */
+  /* ══════════════════════ EDIT MODE ══════════════════════ */
   function initEditMode() {
     const btn    = document.getElementById('editModeBtn');
     const banner = document.getElementById('editBanner');
-    const resetBtn = document.getElementById('resetAllBtn');
+    const reset  = document.getElementById('resetAllBtn');
 
     btn.addEventListener('click', () => {
-      const active = document.body.classList.toggle('edit-mode');
-      btn.setAttribute('aria-pressed', String(active));
-      btn.innerHTML = active
-        ? '<span class="btn-icon">✅</span> Done Editing'
-        : '<span class="btn-icon">✏️</span> Edit Schedule';
-      if (banner) banner.hidden = !active;
-
-      // Show/hide logo upload button
-      const uploadBtn = document.getElementById('logoUploadBtn');
-      if (uploadBtn) uploadBtn.hidden = !active;
-
-      // Make header fields contenteditable
-      setHeaderEditable(active);
+      const on = document.body.classList.toggle('edit-mode');
+      btn.setAttribute('aria-pressed', String(on));
+      btn.textContent = on ? '✅ Done Editing' : '✏️ Edit Schedule';
+      banner.style.display = on ? 'flex' : 'none';
+      document.getElementById('logoUploadBtn').style.display = on ? 'flex' : 'none';
+      document.getElementById('addLegendBtn').style.display  = on ? 'block' : 'none';
+      setHeaderEditable(on);
+      if (!on) persistAllHeader();
     });
 
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        if (confirm('Reset everything to defaults? All your changes will be lost.')) {
-          localStorage.removeItem(STORAGE_KEY);
-          location.reload();
+    reset.addEventListener('click', () => {
+      if (confirm('Reset all changes to default?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+    });
+
+    /* Add column */
+    document.getElementById('addColBtn').addEventListener('click', () => {
+      const name = prompt('Column header name:', 'Sunday');
+      if (!name) return;
+      if (!SCHEDULE_DATA.columns) SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      SCHEDULE_DATA.columns.push(name.trim());
+      SCHEDULE_DATA.rows.forEach(row => { if (row.type === 'normal') row.cells.push({ type:'vacant' }); });
+      patch('columns', SCHEDULE_DATA.columns);
+      persistAllCells();
+      window.renderTable();
+      patchTableForEditor();
+    });
+
+    /* Add row */
+    document.getElementById('addRowBtn').addEventListener('click', () => {
+      const label = prompt('Time slot label:', 'New Time Slot');
+      if (!label) return;
+      const numCols = (SCHEDULE_DATA.columns||[]).length || 6;
+      const cells = Array.from({length: numCols}, () => ({type:'vacant'}));
+      SCHEDULE_DATA.rows.push({ type:'normal', label: label.trim(), cells });
+      persistAllCells();
+      window.renderTable();
+      patchTableForEditor();
+    });
+
+    /* Add legend entry */
+    document.getElementById('addLegendBtn').addEventListener('click', () => {
+      const id    = 'dept_' + Date.now();
+      const label = 'New Dept';
+      SCHEDULE_DATA.departments.push({ id, label, fullName:'New Department', color:'#888888' });
+      window.renderLegend();
+    });
+  }
+
+  /* ══════════════════════ HEADER EDITING ══════════════════════ */
+  function setHeaderEditable(on) {
+    document.querySelectorAll('[data-field]').forEach(el => {
+      el.contentEditable = on ? 'true' : 'false';
+    });
+  }
+  function persistAllHeader() {
+    const metaMap = { republic:'hRepublic', institution:'hInstitution', college:'hCollege', contact:'hContact', semester:'hSemester', academicYear:'hYear', labTitle:'toolbarTitle', sig1Name:'sig1Name', sig1Role:'sig1Role', sig2Name:'sig2Name', sig2Role:'sig2Role' };
+    const s = get();
+    Object.entries(metaMap).forEach(([f,id]) => { const el = document.getElementById(id); if(el) s[f] = el.textContent.trim(); });
+    save(s);
+  }
+  function initHeaderFields() {
+    document.querySelectorAll('[data-field]').forEach(el => {
+      el.contentEditable = 'false';
+      el.addEventListener('blur', () => { if (document.body.classList.contains('edit-mode')) persistAllHeader(); });
+      el.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); el.blur(); } });
+    });
+    /* editable column headers */
+    document.getElementById('schedHead').addEventListener('dblclick', e => {
+      if (!document.body.classList.contains('edit-mode')) return;
+      const th = e.target.closest('th');
+      if (!th || th.classList.contains('col-time')) return;
+      const ci = parseInt(th.dataset.colIndex, 10);
+      if (isNaN(ci)) return;
+      editColumnHeader(th, ci);
+    });
+  }
+  function editColumnHeader(th, ci) {
+    const orig = th.textContent;
+    const inp  = document.createElement('input');
+    inp.type = 'text'; inp.value = orig;
+    inp.style.cssText = 'width:100%;font-size:11px;background:rgba(255,255,255,.2);border:none;color:#fff;text-align:center;padding:2px 4px;';
+    th.textContent = '';
+    th.appendChild(inp);
+    inp.focus(); inp.select();
+    function commit() {
+      const v = inp.value.trim() || orig;
+      if (!SCHEDULE_DATA.columns) SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      SCHEDULE_DATA.columns[ci] = v;
+      th.textContent = v;
+      th.dataset.colIndex = ci;
+      patch('columns', SCHEDULE_DATA.columns);
+    }
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();inp.blur();} if(e.key==='Escape'){th.textContent=orig;} });
+  }
+
+  /* ══════════════════════ TABLE PATCHING ══════════════════════ */
+  function patchTableForEditor() {
+    const tbody = document.getElementById('schedBody');
+    if (!tbody) return;
+    let si = 0;
+    Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+      const tc = tr.querySelector('.time-col');
+      if (!tc) {
+        while (si < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[si].type !== 'lunch') si++;
+        si++; return;
+      }
+      while (si < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[si].type !== 'normal') si++;
+      if (si >= SCHEDULE_DATA.rows.length) return;
+      tr.dataset.rowIndex = si;
+      if (!tc.querySelector('.edit-hint')) {
+        const h = document.createElement('span'); h.className='edit-hint'; h.textContent='✎'; tc.appendChild(h);
+      }
+      /* also add del-row button */
+      if (!tc.querySelector('.del-row-btn')) {
+        const d = document.createElement('button'); d.className='del-row-btn'; d.textContent='✕'; d.title='Remove row';
+        d.addEventListener('click', e => { e.stopPropagation(); delRow(si); });
+        tc.appendChild(d);
+      }
+      let ci = 0;
+      tr.querySelectorAll('.slot').forEach(td => {
+        td.dataset.colIndex = ci;
+        ci += parseInt(td.getAttribute('colspan')||'1',10);
+      });
+      si++;
+    });
+    /* del column buttons in thead */
+    const headRow = document.getElementById('headRow');
+    if (headRow) {
+      Array.from(headRow.querySelectorAll('th')).forEach(th => {
+        const ci = parseInt(th.dataset.colIndex, 10);
+        if (isNaN(ci)) return;
+        if (!th.querySelector('.del-col-btn')) {
+          const d = document.createElement('button'); d.className='del-col-btn'; d.textContent='✕'; d.title='Remove column';
+          d.addEventListener('click', e => { e.stopPropagation(); delColumn(ci); });
+          th.appendChild(d);
         }
       });
     }
   }
 
-  /* ══════════════════════
-     EDITABLE HEADER FIELDS
-     ══════════════════════ */
-  function setHeaderEditable(on) {
-    document.querySelectorAll('[data-field]').forEach(el => {
-      el.contentEditable = on ? 'true' : 'false';
-      if (!on) {
-        // Persist on exit
-        const field = el.dataset.field;
-        patchStored(field, el.textContent.trim());
-      }
+  function delRow(ri) {
+    if (!confirm('Remove this time slot row?')) return;
+    SCHEDULE_DATA.rows.splice(ri, 1);
+    persistAllCells();
+    window.renderTable();
+    patchTableForEditor();
+  }
+
+  function delColumn(ci) {
+    if (!confirm('Remove this column?')) return;
+    if (!SCHEDULE_DATA.columns) SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    SCHEDULE_DATA.columns.splice(ci, 1);
+    SCHEDULE_DATA.rows.forEach(row => {
+      if (row.type !== 'normal') return;
+      const nc = SCHEDULE_DATA.columns.length + 1; // before removal
+      const flat = window.expandCells(row.cells, nc);
+      flat.splice(ci, 1);
+      row.cells = flat;
     });
+    patch('columns', SCHEDULE_DATA.columns);
+    persistAllCells();
+    window.renderTable();
+    patchTableForEditor();
   }
 
-  function initHeaderFields() {
-    document.querySelectorAll('[data-field]').forEach(el => {
-      el.contentEditable = 'false';
-      el.addEventListener('blur', () => {
-        if (!document.body.classList.contains('edit-mode')) return;
-        patchStored(el.dataset.field, el.textContent.trim());
-      });
-      el.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el.blur(); }
-      });
+  function persistAllCells() {
+    const s = get();
+    s.cells = {};
+    s.rowLabels = [];
+    SCHEDULE_DATA.rows.forEach((row, ri) => {
+      if (row.type !== 'normal') { s.rowLabels.push(null); return; }
+      s.rowLabels.push(row.label);
+      const nc = (SCHEDULE_DATA.columns||[]).length || 6;
+      const flat = window.expandCells(row.cells, nc);
+      flat.forEach((cell, ci) => { if (cell && cell.type !== 'vacant') s.cells[`${ri}-${ci}`] = cell; });
     });
+    save(s);
   }
 
-  /* ══════════════════════
-     LOGO UPLOAD
-     ══════════════════════ */
-  function initLogoUpload() {
-    const fileInput = document.getElementById('logoFileInput');
-    if (!fileInput) return;
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target.result;
-        applyLogo(dataUrl);
-        patchStored('logoDataUrl', dataUrl);
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function applyLogo(dataUrl) {
-    const img = document.getElementById('logoImg');
-    const crest = document.getElementById('crestCircle');
-    if (img) { img.src = dataUrl; img.hidden = false; }
-    if (crest) crest.hidden = true;
-  }
-
-  /* ══════════════════════
-     TABLE PATCHING
-     ══════════════════════ */
-  function patchTableForEditor() {
-    const tbody = document.getElementById('schedBody');
-    if (!tbody) return;
-
-    let schedIdx = 0;
-    Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
-      const timeCol = tr.querySelector('.time-col');
-      if (!timeCol) {
-        while (schedIdx < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[schedIdx].type !== 'lunch') schedIdx++;
-        schedIdx++;
-        return;
-      }
-      while (schedIdx < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[schedIdx].type !== 'normal') schedIdx++;
-      if (schedIdx >= SCHEDULE_DATA.rows.length) return;
-
-      tr.dataset.rowIndex = schedIdx;
-
-      if (!timeCol.querySelector('.edit-hint')) {
-        const hint = document.createElement('span');
-        hint.className = 'edit-hint';
-        hint.textContent = 'click to rename';
-        timeCol.appendChild(hint);
-      }
-
-      let ci = 0;
-      tr.querySelectorAll('.slot').forEach(td => {
-        td.dataset.colIndex = ci;
-        ci += parseInt(td.getAttribute('colspan') || '1', 10);
-      });
-
-      schedIdx++;
-    });
-  }
-
-  /* ══════════════════════
-     CELL CLICK HANDLER
-     ══════════════════════ */
+  /* ══════════════════════ CELL CLICK HANDLER ══════════════════════ */
   function attachCellHandlers() {
     const tbody = document.getElementById('schedBody');
     if (!tbody) return;
-
-    tbody.addEventListener('click', (e) => {
+    tbody.addEventListener('click', e => {
       if (!document.body.classList.contains('edit-mode')) return;
       const td = e.target.closest('td');
       if (!td) return;
-
       if (td.classList.contains('time-col')) {
         const tr = td.closest('tr');
         const ri = parseInt(tr.dataset.rowIndex, 10);
         if (!isNaN(ri)) openTimeslotEditor(ri, td);
         return;
       }
-
       if (td.classList.contains('slot')) {
         const tr = td.closest('tr');
         const ri = parseInt(tr.dataset.rowIndex, 10);
         const ci = parseInt(td.dataset.colIndex, 10);
-        if (!isNaN(ri) && !isNaN(ci)) openModal(ri, ci);
+        if (!isNaN(ri) && !isNaN(ci)) {
+          if (e.shiftKey) { openMergeModal(ri, ci); return; }
+          openModal(ri, ci);
+        }
       }
     });
   }
 
-  /* ══════════════════════
-     TIMESLOT INLINE EDITOR
-     ══════════════════════ */
+  /* ══════════════════════ TIMESLOT INLINE EDITOR ══════════════════════ */
   function openTimeslotEditor(ri, td) {
     const row = SCHEDULE_DATA.rows[ri];
     if (!row || row.type !== 'normal') return;
-    const current = row.label;
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = current;
-    input.className = 'form-control';
-    input.style.cssText = 'width:100%;font-size:11px;padding:3px 6px;';
-
+    const cur = row.label;
+    const inp = document.createElement('input');
+    inp.type='text'; inp.value=cur; inp.className='form-control';
+    inp.style.cssText='width:100%;font-size:11px;padding:3px 6px;';
     const orig = td.innerHTML;
-    td.innerHTML = '';
-    td.appendChild(input);
-    input.focus(); input.select();
-
+    td.innerHTML=''; td.appendChild(inp);
+    inp.focus(); inp.select();
     function commit() {
-      const val = input.value.trim() || current;
-      row.label = val;
-      persistRowLabel(ri, val);
-      td.innerHTML = `${esc(val)}<span class="edit-hint">click to rename</span>`;
+      const v = inp.value.trim() || cur;
+      row.label = v;
+      const s = get(); if(!s.rowLabels) s.rowLabels=SCHEDULE_DATA.rows.map(r=>r.type==='normal'?r.label:null); s.rowLabels[ri]=v; save(s);
+      td.innerHTML = h(v)+'<span class="edit-hint">✎</span><button class="del-row-btn" title="Remove row">✕</button>';
+      td.querySelector('.del-row-btn').addEventListener('click', e=>{e.stopPropagation();delRow(ri);});
     }
-
-    function esc(s) {
-      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    input.addEventListener('blur', commit);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
-      if (e.key === 'Escape') { td.innerHTML = orig; }
-    });
+    function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){td.innerHTML=orig;}});
   }
 
-  /* ══════════════════════
-     MODAL
-     ══════════════════════ */
+  /* ══════════════════════ MERGE MODAL ══════════════════════ */
+  let _mergeRi = null, _mergeCi = null;
+
+  function openMergeModal(ri, ci) {
+    _mergeRi = ri; _mergeCi = ci;
+    const cell = getCellFlat(ri, ci);
+    document.getElementById('merge_span').value = cell.rowspan || 1;
+    document.getElementById('mergeOverlay').style.display = 'flex';
+  }
+
+  document.getElementById('mergeClose').addEventListener('click',  () => { document.getElementById('mergeOverlay').style.display='none'; });
+  document.getElementById('mergeCancelBtn').addEventListener('click',() => { document.getElementById('mergeOverlay').style.display='none'; });
+  document.getElementById('mergeApplyBtn').addEventListener('click', () => {
+    const span = Math.max(1, parseInt(document.getElementById('merge_span').value,10)||1);
+    const row  = SCHEDULE_DATA.rows[_mergeRi];
+    if (!row || row.type!=='normal') return;
+    const nc   = (SCHEDULE_DATA.columns||[]).length || 6;
+    const flat = window.expandCells(row.cells, nc);
+    const cell = flat[_mergeCi];
+    if (cell) { cell.rowspan = span > 1 ? span : undefined; flat[_mergeCi] = cell; row.cells = flat; }
+    persistAllCells();
+    window.renderTable();
+    patchTableForEditor();
+    document.getElementById('mergeOverlay').style.display='none';
+  });
+
+  function getCellFlat(ri, ci) {
+    const row = SCHEDULE_DATA.rows[ri];
+    if (!row || row.type!=='normal') return {type:'vacant'};
+    const nc = (SCHEDULE_DATA.columns||[]).length || 6;
+    return window.expandCells(row.cells, nc)[ci] || {type:'vacant'};
+  }
+
+  /* ══════════════════════ CLASS MODAL ══════════════════════ */
   const overlay   = document.getElementById('modalOverlay');
   const form      = document.getElementById('classForm');
-  const closeBtn  = document.getElementById('modalClose');
-  const cancelBtn = document.getElementById('modalCancelBtn');
-  const clearBtn  = document.getElementById('clearCellBtn');
+
+  document.getElementById('modalClose').addEventListener('click',    closeModal);
+  document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if(e.target===overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape'&&overlay.style.display!=='none') closeModal(); });
+
+  document.getElementById('clearCellBtn').addEventListener('click', () => {
+    const ri = parseInt(document.getElementById('f_row').value, 10);
+    const ci = parseInt(document.getElementById('f_col').value, 10);
+    const row = SCHEDULE_DATA.rows[ri];
+    if (row && row.type==='normal') {
+      const nc   = (SCHEDULE_DATA.columns||[]).length || 6;
+      const flat = window.expandCells(row.cells, nc);
+      flat[ci] = {type:'vacant'};
+      row.cells = flat;
+    }
+    persistAllCells();
+    applyCellToDOM(ri, ci, {type:'vacant'});
+    closeModal();
+  });
 
   function openModal(ri, ci) {
-    const cell = getCell(ri, ci);
+    const cell = getCellFlat(ri, ci);
     const row  = SCHEDULE_DATA.rows[ri];
-
-    document.getElementById('f_day').value      = DAYS[ci] || '';
+    const cols = SCHEDULE_DATA.columns || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    document.getElementById('f_day').value      = cols[ci] || '';
     document.getElementById('f_timeslot').value = row ? row.label : '';
     document.getElementById('f_row').value      = ri;
     document.getElementById('f_col').value      = ci;
 
-    if (cell && cell.type === 'class') {
-      document.getElementById('f_subject').value = cell.subject     || '';
-      document.getElementById('f_section').value = cell.section     || '';
-      document.getElementById('f_course').value  = cell.course      || '';
-      document.getElementById('f_teacher').value = cell.instructor  || '';
-      document.getElementById('f_time').value    = cell.time        || '';
-      document.getElementById('f_dept').value    = cell.dept        || 'scoa';
+    if (cell && cell.type==='class') {
+      document.getElementById('f_subject').value = cell.subject    || '';
+      document.getElementById('f_section').value = cell.section    || '';
+      document.getElementById('f_course').value  = cell.course     || '';
+      document.getElementById('f_teacher').value = cell.instructor || '';
+      document.getElementById('f_time').value    = cell.time       || '';
+      document.getElementById('f_dept').value    = cell.dept       || '';
       document.getElementById('modalTitle').textContent = 'Edit Class';
     } else {
       form.reset();
-      document.getElementById('f_day').value      = DAYS[ci] || '';
+      document.getElementById('f_day').value      = cols[ci] || '';
       document.getElementById('f_timeslot').value = row ? row.label : '';
       document.getElementById('f_time').value     = row ? row.label : '';
       document.getElementById('modalTitle').textContent = 'Assign Class';
     }
-
-    clearValidation();
-    overlay.hidden = false;
-    setTimeout(() => document.getElementById('f_subject').focus(), 50);
+    clearVal();
+    overlay.style.display = 'flex';
+    setTimeout(()=>document.getElementById('f_subject').focus(), 40);
   }
 
   function closeModal() {
-    overlay.hidden = true;
+    overlay.style.display = 'none';
     form.reset();
-    clearValidation();
+    clearVal();
   }
 
-  if (closeBtn)  closeBtn.addEventListener('click',  closeModal);
-  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-  if (overlay)   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.hidden) closeModal(); });
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    if (!validate()) return;
 
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      const ri = parseInt(document.getElementById('f_row').value, 10);
-      const ci = parseInt(document.getElementById('f_col').value, 10);
-      persistCell(ri, ci, null);
-      applyCellToDOM(ri, ci, { type:'vacant' });
-      closeModal();
-    });
-  }
+    const ri = parseInt(document.getElementById('f_row').value, 10);
+    const ci = parseInt(document.getElementById('f_col').value, 10);
+    const row = SCHEDULE_DATA.rows[ri];
 
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (!validateForm()) return;
+    /* update timeslot label */
+    const newLabel = document.getElementById('f_timeslot').value.trim();
+    if (row && row.type==='normal' && newLabel && newLabel!==row.label) {
+      row.label = newLabel;
+      const tr = document.querySelector(`tr[data-row-index="${ri}"]`);
+      if (tr) { const tc=tr.querySelector('.time-col'); if(tc){ const hin=tc.querySelector('.edit-hint'); const del=tc.querySelector('.del-row-btn'); tc.textContent=newLabel; if(hin)tc.appendChild(hin); if(del)tc.appendChild(del); }}
+    }
 
-      const ri = parseInt(document.getElementById('f_row').value, 10);
-      const ci = parseInt(document.getElementById('f_col').value, 10);
-      const row = SCHEDULE_DATA.rows[ri];
+    const cell = {
+      type:'class',
+      dept:       document.getElementById('f_dept').value.trim(),
+      instructor: document.getElementById('f_teacher').value.trim(),
+      subject:    document.getElementById('f_subject').value.trim(),
+      section:    document.getElementById('f_section').value.trim(),
+      course:     document.getElementById('f_course').value.trim(),
+      time:       document.getElementById('f_time').value.trim(),
+    };
 
-      // Update time slot label if changed
-      const newLabel = document.getElementById('f_timeslot').value.trim();
-      if (row && row.type === 'normal' && newLabel && newLabel !== row.label) {
-        row.label = newLabel;
-        persistRowLabel(ri, newLabel);
-        const tr = document.querySelector(`tr[data-row-index="${ri}"]`);
-        if (tr) {
-          const tc = tr.querySelector('.time-col');
-          if (tc) tc.innerHTML = `${escHtml(newLabel)}<span class="edit-hint">click to rename</span>`;
-        }
-      }
-
-      const cell = {
-        type:       'class',
-        dept:       document.getElementById('f_dept').value,
-        instructor: document.getElementById('f_teacher').value.trim(),
-        subject:    document.getElementById('f_subject').value.trim(),
-        section:    document.getElementById('f_section').value.trim(),
-        course:     document.getElementById('f_course').value.trim(),
-        time:       document.getElementById('f_time').value.trim(),
-      };
-
-      if (row) {
-        const flat = expandCells(row.cells);
-        flat[ci] = cell;
-        row.cells = flat;
-      }
-
-      persistCell(ri, ci, cell);
-      applyCellToDOM(ri, ci, cell);
-      closeModal();
-    });
-  }
+    if (row && row.type==='normal') {
+      const nc = (SCHEDULE_DATA.columns||[]).length||6;
+      const flat = window.expandCells(row.cells, nc);
+      flat[ci] = cell;
+      row.cells = flat;
+    }
+    persistAllCells();
+    applyCellToDOM(ri, ci, cell);
+    closeModal();
+  });
 
   function applyCellToDOM(ri, ci, cell) {
     const tr = document.querySelector(`tr[data-row-index="${ri}"]`);
@@ -450,96 +422,36 @@
     const td = tr.querySelector(`td[data-col-index="${ci}"]`);
     if (!td) return;
     td.innerHTML = '';
-    if (cell.type === 'class') {
-      const card = buildCard(cell);
-      td.appendChild(card);
-    } else {
-      td.innerHTML = `<div class="vacant-cell"><span class="vc-icon">🔧</span><span class="vc-text">${escHtml(cell.label||'Vacant / Maintenance')}</span></div>`;
-    }
+    td.appendChild(cell.type==='class' ? window.buildCard(cell) : window.buildVacant());
   }
 
-  function buildCard(cell) {
-    const div = document.createElement('div');
-    div.className = 'class-card';
-    div.dataset.dept = cell.dept || '';
-    div.innerHTML = `
-      <span class="cc-instructor">${escHtml(cell.instructor)}</span>
-      <span class="cc-subject">${escHtml(cell.subject)}</span>
-      <span class="cc-section">${escHtml(cell.section)}</span>
-      <span class="cc-time">${escHtml(cell.time)}</span>
-    `;
-    if (typeof window.applyCardColor === 'function') window.applyCardColor(div, cell.dept);
-    return div;
-  }
-
-  function escHtml(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  /* ══════════════════════
-     VALIDATION
-     ══════════════════════ */
-  function validateForm() {
-    let ok = true;
-    ['f_subject','f_section','f_teacher'].forEach(id => {
-      const inp = document.getElementById(id);
-      if (!inp.value.trim()) { inp.classList.add('invalid'); ok = false; }
+  function validate() {
+    let ok=true;
+    ['f_subject','f_section','f_teacher'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el.value.trim()){el.classList.add('invalid');ok=false;}
     });
     return ok;
   }
-
-  function clearValidation() {
-    document.querySelectorAll('.form-control.invalid')
-      .forEach(e => e.classList.remove('invalid'));
+  function clearVal() {
+    document.querySelectorAll('.form-control.invalid').forEach(e=>e.classList.remove('invalid'));
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.form-control').forEach(inp => {
-      inp.addEventListener('input', () => inp.classList.remove('invalid'));
-    });
-  });
-
-  /* ══════════════════════
-     APPLY STORED META (header text, logo)
-     after DOM is ready but before render
-     ══════════════════════ */
-  function applyStoredMeta() {
-    const s = loadData();
-    if (!s) return;
-
-    const metaFields = ['republic','institution','college','contact','semester','academicYear','labTitle','sig1Name','sig1Role','sig2Name','sig2Role'];
-    metaFields.forEach(f => {
-      if (s[f] !== undefined) {
-        const el = document.getElementById(fieldToId(f));
-        if (el) el.textContent = s[f];
-      }
-    });
-
-    if (s.logoDataUrl) applyLogo(s.logoDataUrl);
-  }
-
-  function fieldToId(field) {
-    const map = {
-      republic:'hRepublic', institution:'hInstitution', college:'hCollege',
-      contact:'hContact', semester:'hSemester', academicYear:'hYear',
-      labTitle:'toolbarTitle', sig1Name:'sig1Name', sig1Role:'sig1Role',
-      sig2Name:'sig2Name', sig2Role:'sig2Role'
-    };
-    return map[field] || field;
-  }
-
-  /* ══════════════════════
-     EXPOSE & INIT
-     ══════════════════════ */
-  window.__applyScheduleOverrides = applyOverrides;
-
+  /* ══════════════════════ INIT ══════════════════════ */
   window.addEventListener('load', () => {
     patchTableForEditor();
     initEditMode();
     attachCellHandlers();
     initHeaderFields();
     initLogoUpload();
-    applyStoredMeta();
+    /* restore logo if stored */
+    const s = load();
+    if (s && s.logoDataUrl) applyLogo(s.logoDataUrl);
+    /* restore header text */
+    if (s) {
+      const metaMap = { republic:'hRepublic', institution:'hInstitution', college:'hCollege', contact:'hContact', semester:'hSemester', academicYear:'hYear', labTitle:'toolbarTitle', sig1Name:'sig1Name', sig1Role:'sig1Role', sig2Name:'sig2Name', sig2Role:'sig2Role' };
+      Object.entries(metaMap).forEach(([f,id])=>{if(s[f]!==undefined){const el=document.getElementById(id);if(el)el.textContent=s[f];}});
+    }
   });
 
 })();
