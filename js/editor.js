@@ -77,48 +77,44 @@
     });
 
     reset.addEventListener('click', () => {
-      if (!confirm('Reset the schedule? This will clear all time slots, columns, legend entries, and software list. PC Inventory and header info will be kept.')) return;
+      if (!confirm('Reset the schedule? Time slots, legend, and software will be cleared. PC Inventory is kept.')) return;
 
-      // Preserve PC inventory before wiping localStorage
+      // Preserve PC inventory
       const pcInventory = SCHEDULE_DATA.pcInventory.map(r => ({...r}));
       const pcTotal     = SCHEDULE_DATA.pcTotal;
 
       // Clear localStorage
       localStorage.removeItem(STORAGE_KEY);
 
-      // Wipe schedule rows and columns
-      SCHEDULE_DATA.columns = [];
-      SCHEDULE_DATA.rows    = [];
+      // Reset columns to default 6
+      SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-      // Reset legend to defaults from data.js
-      SCHEDULE_DATA.departments = [
-        { id:'scoa',   label:'SCOA',    fullName:'School of Computing & Allied',      color:'#2d5fa6' },
-        { id:'cbam',   label:'CBAM',    fullName:'Business & Accountancy Management', color:'#2e7d32' },
-        { id:'hm',     label:'HM',      fullName:'Hospitality Management',            color:'#e65100' },
-        { id:'cast',   label:'CAST/IT', fullName:'Arts, Sciences & Technology',       color:'#6a1b9a' },
-        { id:'vacant', label:'',        fullName:'Vacant / Lab Maintenance',          color:'#cbd5e0' },
+      // Reset rows: 4 morning + lunch + 6 afternoon, all vacant, no labels
+      const makeRow = () => ({ type:'normal', label:'', cells: Array.from({length:6}, () => ({type:'vacant'})) });
+      SCHEDULE_DATA.rows = [
+        makeRow(), makeRow(), makeRow(), makeRow(),
+        { type:'lunch' },
+        makeRow(), makeRow(), makeRow(), makeRow(), makeRow(), makeRow(),
       ];
 
-      // Reset software list
-      SCHEDULE_DATA.software = [
-        { dept:'SCOA',    programs:'MS Office' },
-        { dept:'CBAM',    programs:'Canva / Project Dev / MS Office' },
-        { dept:'HM',      programs:'MyHotel PMS' },
-        { dept:'CAST/IT', programs:'Canva / MS Office' },
-      ];
+      // Clear legend
+      SCHEDULE_DATA.departments = [];
 
-      // Restore PC inventory (not cleared)
+      // Clear software
+      SCHEDULE_DATA.software = [];
+
+      // Restore PC inventory
       SCHEDULE_DATA.pcInventory = pcInventory;
       SCHEDULE_DATA.pcTotal     = pcTotal;
 
-      // Re-render everything
+      // Re-render
       window.renderTable();
       window.renderLegend();
       window.renderSoftware();
       window.renderPC();
       patchTableForEditor();
 
-      // Reset logo back to placeholder
+      // Reset logo to placeholder
       const img   = document.getElementById('logoImg');
       const crest = document.getElementById('crestPlaceholder');
       if (img)   { img.src = ''; img.style.display = 'none'; }
