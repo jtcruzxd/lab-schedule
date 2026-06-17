@@ -144,7 +144,7 @@
     const img   = document.getElementById('logoImg');
     const crest = document.getElementById('crestPlaceholder');
     if (img)   { img.src = dataUrl; img.style.display = 'block'; }
-    if (crest) { crest.classList.remove('is-open'); }
+    if (crest) { crest.style.display = 'none'; }
   }
 
   function initLogoUpload() {
@@ -166,7 +166,7 @@
     btn.addEventListener('click', () => {
       const on = document.body.classList.toggle('edit-mode');
       btn.setAttribute('aria-pressed', String(on));
-      btn.textContent = on ? 'âœ… Done Editing' : 'âœï¸ Edit Schedule';
+      btn.textContent = on ? 'Done Editing' : 'âœï¸ Edit Schedule';
       banner.style.display = on ? 'flex' : 'none';
       document.getElementById('logoUploadBtn').style.display = on ? 'flex' : 'none';
       document.getElementById('addLegendBtn').style.display  = on ? 'block' : 'none';
@@ -273,7 +273,7 @@
     // Strip del-btn text from value
     const orig = (th.firstChild && th.firstChild.nodeType === 3)
       ? th.firstChild.textContent.trim()
-      : th.textContent.replace('âœ•','').trim();
+      : th.textContent.replace('X','').trim();
     const inp  = document.createElement('input');
     inp.type = 'text'; inp.value = orig;
     inp.style.cssText = 'width:80%;font-size:11px;background:rgba(255,255,255,.2);border:none;color:#fff;text-align:center;padding:2px 4px;';
@@ -1073,7 +1073,7 @@
 
     const delBtn = document.createElement('button');
     delBtn.className = 'btn btn-sm btn-danger';
-    delBtn.textContent = 'âœ•';
+    delBtn.textContent = 'X';
     delBtn.title = 'Delete archive';
     delBtn.addEventListener('click', () => {
       if (!confirm(`Delete archive "${arc.label}"?`)) return;
@@ -1271,7 +1271,7 @@
       const file = fileInput.files[0];
       if (!file) return;
       runBtn.disabled = true;
-      runBtn.textContent = 'Importingâ€¦';
+      runBtn.textContent = 'Importing...';
       window.ExcelImport.importFile(file, (err, res) => {
         runBtn.textContent = 'Import';
         if (err) {
