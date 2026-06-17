@@ -181,7 +181,7 @@ table.sched-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  table-layout: fixed;
+  table-layout: auto;
   min-width: 780px;
 }
 

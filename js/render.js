@@ -223,6 +223,7 @@
     del.addEventListener('click', () => {
       SCHEDULE_DATA.departments.splice(idx, 1);
       window.renderLegend();
+      window.persistMeta('departments', SCHEDULE_DATA.departments.map(d => ({...d})));
       window.persistMeta('deptColors',  buildDeptColorsMap());
       window.persistMeta('deptLabels',  buildDeptLabelsMap());
     });
@@ -237,6 +238,7 @@
     const sw = document.querySelector(`.legend-swatch[data-dept-id="${deptId}"]`);
     if (sw) sw.style.background = color;
     document.querySelectorAll(`.class-card[data-dept="${deptId}"]`).forEach(c => window.applyCardColor(c, deptId));
+    window.persistMeta('departments', SCHEDULE_DATA.departments.map(d => ({...d})));
     window.persistMeta('deptColors', buildDeptColorsMap());
   }
 
@@ -246,6 +248,7 @@
     const parts = value.split('–').map(s => s.trim());
     if (parts.length >= 2) { d.label = parts[0]; d.fullName = parts.slice(1).join('–').trim(); }
     else d.fullName = value;
+    window.persistMeta('departments', SCHEDULE_DATA.departments.map(d => ({...d})));
     window.persistMeta('deptLabels', buildDeptLabelsMap());
   }
 

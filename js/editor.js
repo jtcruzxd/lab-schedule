@@ -22,6 +22,14 @@
     if (s.cells)         Object.entries(s.cells).forEach(([k,cell]) => { const [ri,ci] = k.split('-').map(Number); const row = SCHEDULE_DATA.rows[ri]; if (!row||row.type!=='normal') return; const nc = SCHEDULE_DATA.columns ? SCHEDULE_DATA.columns.length : 6; const flat = window.expandCells(row.cells, nc); flat[ci] = cell===null?{type:'vacant'}:cell; row.cells = flat; });
     if (s.deptColors)    Object.entries(s.deptColors).forEach(([id,c]) => { const d = SCHEDULE_DATA.departments.find(x=>x.id===id); if(d) d.color=c; });
     if (s.deptLabels)    Object.entries(s.deptLabels).forEach(([id,v]) => { const d = SCHEDULE_DATA.departments.find(x=>x.id===id); if(d) { d.label=v.label; d.fullName=v.fullName; } });
+    /* Restore any user-added departments that don't exist in data.js defaults */
+    if (s.departments) {
+      s.departments.forEach(saved => {
+        const exists = SCHEDULE_DATA.departments.find(d => d.id === saved.id);
+        if (!exists) SCHEDULE_DATA.departments.push(saved);
+        else { exists.color = saved.color; exists.label = saved.label; exists.fullName = saved.fullName; }
+      });
+    }
     if (s.pcInventory)   SCHEDULE_DATA.pcInventory   = s.pcInventory;
     if (s.pcTotal!==undefined) SCHEDULE_DATA.pcTotal = s.pcTotal;
     if (s.software)      SCHEDULE_DATA.software      = s.software;
@@ -724,6 +732,8 @@
     const color = stringToColor(label);
     SCHEDULE_DATA.departments.push({ id, label, fullName: label, color });
     window.renderLegend();
+    /* Persist the full departments array so new entries survive refresh */
+    window.persistMeta('departments', SCHEDULE_DATA.departments.map(d => ({...d})));
     window.persistMeta('deptColors', buildDeptColorsMap());
     window.persistMeta('deptLabels', buildDeptLabelsMap());
   }
