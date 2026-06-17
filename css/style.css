@@ -976,3 +976,44 @@ body.compact .sched-table thead th.col-time-sub { width: 52px; }
   border-color: var(--clr-primary-lt) !important;
   background: #e8f0fb !important;
 }
+
+/* ════════════════════════════
+   LAB TABS
+   ════════════════════════════ */
+.lab-tabs {
+  background: var(--clr-primary);
+  display: flex;
+  gap: 0;
+  padding: 0 40px;
+  border-bottom: none;
+}
+.lab-tab {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 28px;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  color: rgba(255,255,255,.6);
+  background: transparent;
+  border-bottom: 3px solid transparent;
+  transition: color .15s, border-color .15s, background .15s;
+  letter-spacing: .03em;
+}
+.lab-tab:hover {
+  color: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.07);
+}
+.lab-tab.active {
+  color: #fff;
+  border-bottom-color: var(--clr-accent);
+  background: rgba(255,255,255,.10);
+}
+@media (max-width: 600px) {
+  .lab-tabs { padding: 0 12px; }
+  .lab-tab  { font-size: 11px; padding: 8px 14px; }
+}
+@media print {
+  .lab-tabs { display: none; }
+}

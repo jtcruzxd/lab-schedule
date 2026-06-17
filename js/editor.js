@@ -4,7 +4,105 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'omsc_schedule_data';
+  /* ══════════════════════ LAB TABS ══════════════════════ */
+  /* Active lab: 1 or 2. STORAGE_KEY switches on tab change. */
+  let _activeLab = parseInt(localStorage.getItem('omsc_active_lab') || '1', 10);
+
+  const STORAGE_KEYS = {
+    1: 'omsc_schedule_data_1',
+    2: 'omsc_schedule_data_2',
+  };
+
+  /* Migrate legacy single-lab data into lab 1 on first load */
+  (function migrateLegacy() {
+    const legacy = localStorage.getItem('omsc_schedule_data');
+    if (legacy && !localStorage.getItem(STORAGE_KEYS[1])) {
+      localStorage.setItem(STORAGE_KEYS[1], legacy);
+    }
+  })();
+
+  let STORAGE_KEY = STORAGE_KEYS[_activeLab];
+
+  /* ── Switch labs ── */
+  function switchLab(labNum) {
+    if (labNum === _activeLab) return;
+
+    // Save header text before switching
+    if (document.body.classList.contains('edit-mode')) persistAllHeader();
+
+    _activeLab = labNum;
+    STORAGE_KEY = STORAGE_KEYS[_activeLab];
+    localStorage.setItem('omsc_active_lab', String(_activeLab));
+
+    // Update tab UI
+    document.querySelectorAll('.lab-tab').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.lab, 10) === _activeLab);
+    });
+
+    // Update toolbar title tab indicator
+    const titleEl = document.getElementById('toolbarTitle');
+    if (titleEl) {
+      // Strip old " — Lab X" suffix if present
+      let txt = titleEl.textContent.replace(/ — Lab \d+$/, '');
+      titleEl.textContent = txt;
+    }
+
+    // Reset SCHEDULE_DATA to defaults then re-apply stored data for this lab
+    resetScheduleDataToDefault();
+    applyOverrides();
+
+    // Re-render everything
+    window.renderTable();
+    window.renderLegend();
+    window.renderSoftware();
+    window.renderPC();
+    patchTableForEditor();
+
+    // Restore header text for this lab
+    const s = load();
+    if (s) {
+      const metaMap = { republic:'hRepublic', institution:'hInstitution', college:'hCollege', contact:'hContact', semester:'hSemester', academicYear:'hYear', labTitle:'toolbarTitle', sig1Name:'sig1Name', sig1Role:'sig1Role', sig2Name:'sig2Name', sig2Role:'sig2Role' };
+      Object.entries(metaMap).forEach(([f,id]) => { if (s[f]!==undefined) { const el = document.getElementById(id); if(el) el.textContent = s[f]; } });
+    }
+
+    // Restore logo
+    if (s && s.logoDataUrl) applyLogo(s.logoDataUrl);
+    else {
+      const img   = document.getElementById('logoImg');
+      const crest = document.getElementById('crestPlaceholder');
+      if (img)   { img.src = ''; img.style.display = 'none'; }
+      if (crest) { crest.style.display = 'flex'; }
+    }
+  }
+
+  /* ── Reset SCHEDULE_DATA to clean default (for tab switching) ── */
+  function resetScheduleDataToDefault() {
+    SCHEDULE_DATA.columns     = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    SCHEDULE_DATA.departments = [];
+    SCHEDULE_DATA.software    = [];
+    SCHEDULE_DATA.pcInventory = [
+      { processor:'Core i7', y2022:47, y2023:0, y2024:0, y2025:4 },
+      { processor:'Core i5', y2022:0,  y2023:0, y2024:0, y2025:0 },
+      { processor:'Core i3', y2022:0,  y2023:0, y2024:0, y2025:0 },
+    ];
+    SCHEDULE_DATA.pcTotal = 51;
+    const makeRow = () => ({ type:'normal', label:'', cells: Array.from({length:6}, () => ({type:'vacant'})) });
+    SCHEDULE_DATA.rows = [
+      makeRow(), makeRow(), makeRow(), makeRow(),
+      { type:'lunch' },
+      makeRow(), makeRow(), makeRow(), makeRow(), makeRow(), makeRow(),
+    ];
+  }
+
+  function initLabTabs() {
+    document.querySelectorAll('.lab-tab').forEach(btn => {
+      btn.addEventListener('click', () => switchLab(parseInt(btn.dataset.lab, 10)));
+    });
+    // Set initial active state
+    document.querySelectorAll('.lab-tab').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.lab, 10) === _activeLab);
+    });
+  }
 
   /* ══════════════════════ STORAGE ══════════════════════ */
   function load()      { try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; } }
@@ -776,17 +874,12 @@
   }
 
   /* ══════════════════════ AUTO-BACKUP ══════════════════════ */
-  const BACKUP_KEY   = 'omsc_schedule_backups';
-  const MAX_BACKUPS  = 20;
-  const BACKUP_INTERVAL_MS = 10000; // 10 seconds
+  const MAX_BACKUPS        = 20;
+  const BACKUP_INTERVAL_MS = 10000;
 
-  function getBackups() {
-    try { const s = localStorage.getItem(BACKUP_KEY); return s ? JSON.parse(s) : []; } catch(e) { return []; }
-  }
-
-  function saveBackups(list) {
-    try { localStorage.setItem(BACKUP_KEY, JSON.stringify(list)); } catch(e) {}
-  }
+  function backupKey()       { return 'omsc_backups_' + _activeLab; }
+  function getBackups()      { try { const s = localStorage.getItem(backupKey()); return s ? JSON.parse(s) : []; } catch(e) { return []; } }
+  function saveBackups(list) { try { localStorage.setItem(backupKey(), JSON.stringify(list)); } catch(e) {} }
 
   function createBackup() {
     const current = load();
@@ -836,6 +929,10 @@
     const empty    = document.getElementById('backupEmpty');
     const backups  = getBackups();
 
+    // Update title to show current lab
+    const titleEl = overlay.querySelector('.modal-title');
+    if (titleEl) titleEl.textContent = `Backups — Laboratory ${_activeLab}`;
+
     list.innerHTML = '';
 
     if (backups.length === 0) {
@@ -878,6 +975,7 @@
 
   /* ══════════════════════ INIT ══════════════════════ */
   window.addEventListener('load', () => {
+    initLabTabs();
     patchTableForEditor();
     initEditMode();
     attachCellHandlers();
