@@ -321,7 +321,7 @@
         if (stale) stale.remove();
 
         const d = document.createElement('button');
-        d.className = 'del-row-btn'; d.textContent = 'âœ•'; d.title = 'Remove row';
+        d.className = 'del-row-btn'; d.textContent = '\u2715'; d.title = 'Remove row';
         d.addEventListener('click', e => { e.stopPropagation(); delRow(capturedSi); });
         firstSlot.appendChild(d);
       }
@@ -347,7 +347,7 @@
         const ci = parseInt(th.dataset.colIndex, 10);
         if (isNaN(ci)) return;
         const d = document.createElement('button');
-        d.className = 'del-col-btn'; d.textContent = 'âœ•'; d.title = 'Remove column';
+        d.className = 'del-col-btn'; d.textContent = '\u2715'; d.title = 'Remove column';
         d.addEventListener('click', e => { e.stopPropagation(); delColumn(ci); });
         th.appendChild(d);
       });
