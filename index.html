@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -22,10 +22,10 @@
           <span class="crest-bot">EST. 1969</span>
         </div>
         <!-- Uploaded logo -->
-        <img id="logoImg" class="logo-img" src="" alt="Logo" style="display:none" />
+        <img id="logoImg" class="logo-img" src="" alt="Logo"  />
         <!-- Upload btn — edit mode only -->
-        <label class="logo-upload-btn" id="logoUploadBtn" style="display:none" title="Upload logo">
-          📷<input type="file" id="logoFileInput" accept="image/*" style="display:none" />
+        <label class="logo-upload-btn" id="logoUploadBtn"  title="Upload logo">
+          📷<input type="file" id="logoFileInput" accept="image/*"  />
         </label>
       </div>
 
@@ -64,7 +64,7 @@
   </div>
 
   <!-- ══ EDIT BANNER ══ -->
-  <div class="edit-banner" id="editBanner" style="display:none">
+  <div class="edit-banner" id="editBanner" >
     <span>✏️ <strong>Edit Mode</strong> — Click any header text, cell, time label, legend item, or table column to edit
       <span id="backupStatus" class="backup-status"></span>
     </span>
@@ -79,7 +79,7 @@
   </div>
 
   <!-- ══ BACKUP PANEL ══ -->
-  <div class="modal-overlay" id="backupOverlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-overlay" id="backupOverlay"  role="dialog" aria-modal="true">
     <div class="modal" style="max-width:480px">
       <div class="modal-header">
         <h2 class="modal-title">Backups</h2>
@@ -94,7 +94,7 @@
   </div>
 
   <!-- ══ ARCHIVE PANEL ══ -->
-  <div class="modal-overlay" id="archiveOverlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-overlay" id="archiveOverlay"  role="dialog" aria-modal="true">
     <div class="modal" style="max-width:560px">
       <div class="modal-header">
         <h2 class="modal-title" id="archivePanelTitle">Schedule Archives</h2>
@@ -127,7 +127,7 @@
   </div>
 
   <!-- ══ ARCHIVE VIEWER ══ -->
-  <div class="modal-overlay" id="archiveViewerOverlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-overlay" id="archiveViewerOverlay"  role="dialog" aria-modal="true">
     <div class="modal" style="max-width:96vw;width:1200px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column">
       <div class="modal-header" style="flex-shrink:0">
         <h2 class="modal-title" id="archiveViewerTitle">Archive Viewer</h2>
@@ -140,7 +140,7 @@
     </div>
   </div>
   <!-- ══ EXCEL IMPORT MODAL ══ -->
-  <div class="modal-overlay" id="importOverlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-overlay" id="importOverlay"  role="dialog" aria-modal="true">
     <div class="modal" style="max-width:480px">
       <div class="modal-header">
         <h2 class="modal-title">Import Schedule from Excel</h2>
@@ -180,6 +180,7 @@
   </div>
 
   <!-- ══ CLASS ENTRY MODAL ══ -->
+  <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title" id="modalTitle">Assign Class</h2>
@@ -295,7 +296,7 @@
   </div>
 
   <!-- ══ MERGE ROWS MODAL ══ -->
-  <div class="modal-overlay" id="mergeOverlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-overlay" id="mergeOverlay"  role="dialog" aria-modal="true">
     <div class="modal" style="max-width:380px">
       <div class="modal-header">
         <h2 class="modal-title">Merge / Split Cell</h2>
@@ -342,7 +343,7 @@
       <div class="info-card">
         <h2 class="card-title">Legend</h2>
         <ul class="legend-list" id="legendList"></ul>
-        <button class="sw-add-btn" id="addLegendBtn" style="display:none">+ Add Entry</button>
+        <button class="sw-add-btn" id="addLegendBtn" >+ Add Entry</button>
       </div>
 
       <div class="info-card">
