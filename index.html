@@ -53,9 +53,94 @@
       <button class="btn btn-outline" id="toggleViewBtn" aria-pressed="false">
         <span class="btn-icon">📱</span> Compact View
       </button>
+      <button class="btn btn-outline" id="editModeBtn" aria-pressed="false">
+        <span class="btn-icon">✏️</span> Edit Schedule
+      </button>
       <button class="btn btn-primary" onclick="window.print()">
         <span class="btn-icon">🖨️</span> Print
       </button>
+    </div>
+  </div>
+
+  <!-- ══ EDIT BANNER (shown in edit mode) ══ -->
+  <div class="edit-banner" id="editBanner" hidden>
+    <span>✏️ <strong>Edit Mode</strong> — Click any cell to assign or clear a class. Click a time label to rename the slot.</span>
+    <button class="btn btn-sm btn-danger" id="resetAllBtn">↺ Reset to Default</button>
+  </div>
+
+  <!-- ══ CLASS ENTRY MODAL ══ -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Assign Class</h2>
+        <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="classForm" novalidate autocomplete="off">
+          <input type="hidden" id="f_row" />
+          <input type="hidden" id="f_col" />
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f_day">Day</label>
+              <input type="text" id="f_day" class="form-control" readonly />
+            </div>
+            <div class="form-group">
+              <label for="f_timeslot">Time Slot (row label)</label>
+              <input type="text" id="f_timeslot" class="form-control" placeholder="e.g. 9:15 – 10:45" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group form-group--full">
+              <label for="f_subject">Subject <span class="req">*</span></label>
+              <input type="text" id="f_subject" class="form-control" placeholder="e.g. Computer Programming 1" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f_section">Year &amp; Section <span class="req">*</span></label>
+              <input type="text" id="f_section" class="form-control" placeholder="e.g. BSIT 1A" required />
+            </div>
+            <div class="form-group">
+              <label for="f_course">Course</label>
+              <input type="text" id="f_course" class="form-control" placeholder="e.g. BSIT" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f_teacher">Teacher <span class="req">*</span></label>
+              <input type="text" id="f_teacher" class="form-control" placeholder="e.g. Mr. Santos" required />
+            </div>
+            <div class="form-group">
+              <label for="f_time">Class Time</label>
+              <input type="text" id="f_time" class="form-control" placeholder="e.g. 9:15 – 10:45" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f_dept">Department</label>
+              <select id="f_dept" class="form-control">
+                <option value="scoa">SCOA – Computing &amp; Allied</option>
+                <option value="cbam">CBAM – Business &amp; Accountancy</option>
+                <option value="hm">HM – Hospitality Management</option>
+                <option value="cast">CAST/IT – Arts, Sciences &amp; Technology</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-danger btn-sm" id="clearCellBtn">Clear Cell</button>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn btn-outline" id="modalCancelBtn">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -145,5 +230,6 @@
 
   <script src="js/data.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/editor.js"></script>
 </body>
 </html>

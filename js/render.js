@@ -177,6 +177,10 @@
 
   /* ── init ── */
   document.addEventListener('DOMContentLoaded', () => {
+    // Allow editor.js to apply stored overrides first
+    if (typeof window.__applyScheduleOverrides === 'function') {
+      window.__applyScheduleOverrides();
+    }
     renderTable();
     renderLegend();
     renderPC();
