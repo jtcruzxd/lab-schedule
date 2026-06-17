@@ -494,6 +494,9 @@ body.edit-mode td.time-col .edit-hint { display: block; }
   align-items: center; justify-content: center;
   padding: 16px;
 }
+.modal-overlay.is-open {
+  display: flex;
+}
 .modal-overlay[hidden] { display: none !important; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

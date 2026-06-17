@@ -1,10 +1,10 @@
-/**
- * editor.js — full schedule editor
+﻿/**
+ * editor.js â€” full schedule editor
  */
 (function () {
   'use strict';
 
-  /* ══════════════════════ LAB TABS ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• LAB TABS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   /* Active lab: 1 or 2. STORAGE_KEY switches on tab change. */
   let _activeLab = parseInt(localStorage.getItem('omsc_active_lab') || '1', 10);
 
@@ -23,7 +23,7 @@
 
   let STORAGE_KEY = STORAGE_KEYS[_activeLab];
 
-  /* ── Switch labs ── */
+  /* â”€â”€ Switch labs â”€â”€ */
   function switchLab(labNum) {
     if (labNum === _activeLab) return;
 
@@ -42,8 +42,8 @@
     // Update toolbar title tab indicator
     const titleEl = document.getElementById('toolbarTitle');
     if (titleEl) {
-      // Strip old " — Lab X" suffix if present
-      let txt = titleEl.textContent.replace(/ — Lab \d+$/, '');
+      // Strip old " â€” Lab X" suffix if present
+      let txt = titleEl.textContent.replace(/ â€” Lab \d+$/, '');
       titleEl.textContent = txt;
     }
 
@@ -70,12 +70,12 @@
     else {
       const img   = document.getElementById('logoImg');
       const crest = document.getElementById('crestPlaceholder');
-      if (img)   { img.src = ''; img.style.display = 'none'; }
-      if (crest) { crest.style.display = 'flex'; }
+      if (img)   { img.src = ''; img.classList.remove('is-open'); }
+      if (crest) { crest.classList.add('is-open'); }
     }
   }
 
-  /* ── Reset SCHEDULE_DATA to clean default (for tab switching) ── */
+  /* â”€â”€ Reset SCHEDULE_DATA to clean default (for tab switching) â”€â”€ */
   function resetScheduleDataToDefault() {
     SCHEDULE_DATA.columns     = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     SCHEDULE_DATA.departments = [];
@@ -104,13 +104,13 @@
     });
   }
 
-  /* ══════════════════════ STORAGE ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STORAGE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function load()      { try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; } }
   function save(data)  { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {} }
   function get()       { return load() || {}; }
   function patch(k, v) { const s = get(); s[k] = v; save(s); }
 
-  /* ══════════════════════ APPLY OVERRIDES ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• APPLY OVERRIDES â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function applyOverrides() {
     const s = load();
     if (!s) return;
@@ -139,12 +139,12 @@
   }
   window.__applyScheduleOverrides = applyOverrides;
 
-  /* ══════════════════════ LOGO ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• LOGO â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function applyLogo(dataUrl) {
     const img   = document.getElementById('logoImg');
     const crest = document.getElementById('crestPlaceholder');
     if (img)   { img.src = dataUrl; img.style.display = 'block'; }
-    if (crest) { crest.style.display = 'none'; }
+    if (crest) { crest.classList.remove('is-open'); }
   }
 
   function initLogoUpload() {
@@ -157,7 +157,7 @@
     });
   }
 
-  /* ══════════════════════ EDIT MODE ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• EDIT MODE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function initEditMode() {
     const btn    = document.getElementById('editModeBtn');
     const banner = document.getElementById('editBanner');
@@ -166,7 +166,7 @@
     btn.addEventListener('click', () => {
       const on = document.body.classList.toggle('edit-mode');
       btn.setAttribute('aria-pressed', String(on));
-      btn.textContent = on ? '✅ Done Editing' : '✏️ Edit Schedule';
+      btn.textContent = on ? 'âœ… Done Editing' : 'âœï¸ Edit Schedule';
       banner.style.display = on ? 'flex' : 'none';
       document.getElementById('logoUploadBtn').style.display = on ? 'flex' : 'none';
       document.getElementById('addLegendBtn').style.display  = on ? 'block' : 'none';
@@ -215,8 +215,8 @@
       // Reset logo to placeholder
       const img   = document.getElementById('logoImg');
       const crest = document.getElementById('crestPlaceholder');
-      if (img)   { img.src = ''; img.style.display = 'none'; }
-      if (crest) { crest.style.display = 'flex'; }
+      if (img)   { img.src = ''; img.classList.remove('is-open'); }
+      if (crest) { crest.classList.add('is-open'); }
     });
 
     /* Add column */
@@ -238,7 +238,7 @@
     });
   }
 
-  /* ══════════════════════ HEADER EDITING ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• HEADER EDITING â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function setHeaderEditable(on) {
     document.querySelectorAll('[data-field]').forEach(el => {
       el.contentEditable = on ? 'true' : 'false';
@@ -258,7 +258,7 @@
       el.addEventListener('blur', () => { if (document.body.classList.contains('edit-mode')) persistAllHeader(); });
       el.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); el.blur(); } });
     });
-    /* editable column headers — dblclick on day-group th in row1 */
+    /* editable column headers â€” dblclick on day-group th in row1 */
     document.getElementById('schedHead').addEventListener('dblclick', e => {
       if (!document.body.classList.contains('edit-mode')) return;
       const th = e.target.closest('th.col-day-group');
@@ -273,7 +273,7 @@
     // Strip del-btn text from value
     const orig = (th.firstChild && th.firstChild.nodeType === 3)
       ? th.firstChild.textContent.trim()
-      : th.textContent.replace('✕','').trim();
+      : th.textContent.replace('âœ•','').trim();
     const inp  = document.createElement('input');
     inp.type = 'text'; inp.value = orig;
     inp.style.cssText = 'width:80%;font-size:11px;background:rgba(255,255,255,.2);border:none;color:#fff;text-align:center;padding:2px 4px;';
@@ -292,14 +292,14 @@
     inp.addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();inp.blur();} if(e.key==='Escape'){window.renderTable();patchTableForEditor();} });
   }
 
-  /* ══════════════════════ TABLE PATCHING ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TABLE PATCHING â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function patchTableForEditor() {
     const tbody = document.getElementById('schedBody');
     if (!tbody) return;
 
     let si = 0;
     Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
-      // Lunch row has the row-lunch class — skip it
+      // Lunch row has the row-lunch class â€” skip it
       if (tr.classList.contains('row-lunch')) {
         while (si < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[si].type !== 'lunch') si++;
         si++; return;
@@ -311,7 +311,7 @@
       const capturedSi = si;
       tr.dataset.rowIndex = capturedSi;
 
-      // ── Row label cell: first .time-col-per-day in this row ──
+      // â”€â”€ Row label cell: first .time-col-per-day in this row â”€â”€
       // We no longer have a dedicated time-col for row label.
       // Add a del-row overlay button on the first slot td instead.
       const firstSlot = tr.querySelector('td.slot');
@@ -321,7 +321,7 @@
         if (stale) stale.remove();
 
         const d = document.createElement('button');
-        d.className = 'del-row-btn'; d.textContent = '✕'; d.title = 'Remove row';
+        d.className = 'del-row-btn'; d.textContent = 'âœ•'; d.title = 'Remove row';
         d.addEventListener('click', e => { e.stopPropagation(); delRow(capturedSi); });
         firstSlot.appendChild(d);
       }
@@ -339,7 +339,7 @@
       si++;
     });
 
-    // ── Del-col buttons on day-group ths (row1) ──
+    // â”€â”€ Del-col buttons on day-group ths (row1) â”€â”€
     const schedHead = document.getElementById('schedHead');
     if (schedHead) {
       schedHead.querySelectorAll('.del-col-btn').forEach(b => b.remove());
@@ -347,7 +347,7 @@
         const ci = parseInt(th.dataset.colIndex, 10);
         if (isNaN(ci)) return;
         const d = document.createElement('button');
-        d.className = 'del-col-btn'; d.textContent = '✕'; d.title = 'Remove column';
+        d.className = 'del-col-btn'; d.textContent = 'âœ•'; d.title = 'Remove column';
         d.addEventListener('click', e => { e.stopPropagation(); delColumn(ci); });
         th.appendChild(d);
       });
@@ -393,7 +393,7 @@
     save(s);
   }
 
-  /* ══════════════════════ CELL CLICK HANDLER ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• CELL CLICK HANDLER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function attachCellHandlers() {
     const tbody = document.getElementById('schedBody');
     if (!tbody) return;
@@ -402,7 +402,7 @@
       const td = e.target.closest('td');
       if (!td) return;
 
-      // Time sub-column — editable time value for a class cell
+      // Time sub-column â€” editable time value for a class cell
       if (td.dataset.isTime === '1') {
         const tr = td.closest('tr');
         const ri = parseInt(tr.dataset.rowIndex, 10);
@@ -425,7 +425,7 @@
     });
   }
 
-  /* ── Inline time-cell editor ── */
+  /* â”€â”€ Inline time-cell editor â”€â”€ */
   function editTimeCell(ri, ci, td) {
     const row  = SCHEDULE_DATA.rows[ri];
     if (!row || row.type !== 'normal') return;
@@ -456,7 +456,7 @@
     });
   }
 
-  /* ══════════════════════ TIMESLOT INLINE EDITOR ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TIMESLOT INLINE EDITOR â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function openTimeslotEditor(ri, td) {
     const row = SCHEDULE_DATA.rows[ri];
     if (!row || row.type !== 'normal') return;
@@ -487,18 +487,18 @@
     });
   }
 
-  /* ══════════════════════ MERGE MODAL ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MERGE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   let _mergeRi = null, _mergeCi = null;
 
   function openMergeModal(ri, ci) {
     _mergeRi = ri; _mergeCi = ci;
     const cell = getCellFlat(ri, ci);
     document.getElementById('merge_span').value = cell.rowspan || 1;
-    document.getElementById('mergeOverlay').style.display = 'flex';
+    document.getElementById('mergeOverlay').classList.add('is-open');
   }
 
-  document.getElementById('mergeClose').addEventListener('click',   () => { document.getElementById('mergeOverlay').style.display='none'; });
-  document.getElementById('mergeCancelBtn').addEventListener('click',() => { document.getElementById('mergeOverlay').style.display='none'; });
+  document.getElementById('mergeClose').addEventListener('click',   () => { document.getElementById('mergeOverlay').classList.remove('is-open'); });
+  document.getElementById('mergeCancelBtn').addEventListener('click',() => { document.getElementById('mergeOverlay').classList.remove('is-open'); });
   document.getElementById('mergeApplyBtn').addEventListener('click', () => {
     const span = Math.max(1, parseInt(document.getElementById('merge_span').value,10)||1);
     const row  = SCHEDULE_DATA.rows[_mergeRi];
@@ -510,7 +510,7 @@
     persistAllCells();
     window.renderTable();
     patchTableForEditor();
-    document.getElementById('mergeOverlay').style.display='none';
+    document.getElementById('mergeOverlay').classList.remove('is-open');
   });
 
   function getCellFlat(ri, ci) {
@@ -520,14 +520,14 @@
     return window.expandCells(row.cells, nc)[ci] || {type:'vacant'};
   }
 
-  /* ══════════════════════ CLASS MODAL ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• CLASS MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   const overlay = document.getElementById('modalOverlay');
   const form    = document.getElementById('classForm');
 
   document.getElementById('modalClose').addEventListener('click',    closeModal);
   document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
   overlay.addEventListener('click', e => { if(e.target===overlay) closeModal(); });
-  document.addEventListener('keydown', e => { if(e.key==='Escape'&&overlay.style.display!=='none') closeModal(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape'&&overlay.classList.contains('is-open')) closeModal(); });
 
   document.getElementById('clearCellBtn').addEventListener('click', () => {
     const ri = parseInt(document.getElementById('f_row').value, 10);
@@ -581,12 +581,12 @@
       document.getElementById('modalTitle').textContent = 'Assign Class';
     }
     clearVal();
-    overlay.style.display = 'flex';
+    overlay.classList.add('is-open');
     setTimeout(() => document.getElementById('f_subject').focus(), 40);
   }
 
   function closeModal() {
-    overlay.style.display = 'none';
+    overlay.classList.remove('is-open');
     form.reset();
     clearVal();
   }
@@ -644,7 +644,7 @@
   });
 
   function applyCellToDOM(ri, ci, cell) {
-    // Always query fresh — row index may have shifted after re-render
+    // Always query fresh â€” row index may have shifted after re-render
     const tr = document.querySelector(`tr[data-row-index="${ri}"]`);
     if (!tr) return;
     // Find the td whose data-col-index matches ci (handles colspan gaps)
@@ -675,7 +675,7 @@
     document.querySelectorAll('.form-control.invalid').forEach(e => e.classList.remove('invalid'));
   }
 
-  /* ══════════════════════ ADD ROW DIALOG ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ADD ROW DIALOG â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function lunchIndex() {
     return SCHEDULE_DATA.rows.findIndex(r => r.type === 'lunch');
   }
@@ -702,9 +702,9 @@
             <div class="form-group" style="margin-bottom:16px">
               <label>Position</label>
               <div class="pos-btn-group">
-                ${hasBefore ? '<button class="pos-btn" data-pos="before-lunch">☀️ Morning (before lunch)</button>' : ''}
-                ${hasAfter  ? '<button class="pos-btn" data-pos="after-lunch">🌤️ Afternoon (after lunch)</button>' : ''}
-                <button class="pos-btn" data-pos="bottom">⬇️ Bottom</button>
+                ${hasBefore ? '<button class="pos-btn" data-pos="before-lunch">â˜€ï¸ Morning (before lunch)</button>' : ''}
+                ${hasAfter  ? '<button class="pos-btn" data-pos="after-lunch">ðŸŒ¤ï¸ Afternoon (after lunch)</button>' : ''}
+                <button class="pos-btn" data-pos="bottom">â¬‡ï¸ Bottom</button>
               </div>
             </div>
           </div>
@@ -746,7 +746,7 @@
     patchTableForEditor();
   }
 
-  /* ══════════════════════ ADD COLUMN DIALOG ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ADD COLUMN DIALOG â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function openAddColDialog() {
     const html = `
       <div class="add-pos-overlay" id="addColOverlay">
@@ -821,7 +821,7 @@
     patchTableForEditor();
   }
 
-  /* ══════════════════════ DEPT → LEGEND SYNC ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• DEPT â†’ LEGEND SYNC â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function syncDeptToLegend(deptStr, fullLabel) {
     if (!deptStr) return;
     const id    = deptStr.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -867,13 +867,13 @@
     return m;
   }
 
-  /* ── Proper case helper ── */
+  /* â”€â”€ Proper case helper â”€â”€ */
   function toProperCase(str) {
     if (!str) return '';
     return str.trim().replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   }
 
-  /* ══════════════════════ AUTO-BACKUP ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• AUTO-BACKUP â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   const MAX_BACKUPS        = 20;
   const BACKUP_INTERVAL_MS = 10000;
 
@@ -893,7 +893,7 @@
     if (backups.length > 0) {
       const lastData = JSON.stringify(backups[0].data);
       const currData = JSON.stringify(current);
-      if (lastData === currData) return; // no change — skip
+      if (lastData === currData) return; // no change â€” skip
     }
 
     backups.unshift({ ts, label, data: current });
@@ -903,7 +903,7 @@
     // Update status indicator
     const statusEl = document.getElementById('backupStatus');
     if (statusEl) {
-      statusEl.textContent = `✓ Backed up at ${new Date(ts).toLocaleTimeString()}`;
+      statusEl.textContent = `âœ“ Backed up at ${new Date(ts).toLocaleTimeString()}`;
       statusEl.classList.add('backup-flash');
       setTimeout(() => statusEl.classList.remove('backup-flash'), 1200);
     }
@@ -919,8 +919,8 @@
     const closeBtn  = document.getElementById('backupClose');
 
     if (showBtn) showBtn.addEventListener('click', openBackupPanel);
-    if (closeBtn) closeBtn.addEventListener('click', () => { overlay.style.display = 'none'; });
-    if (overlay) overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+    if (closeBtn) closeBtn.addEventListener('click', () => { overlay.classList.remove('is-open'); });
+    if (overlay) overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('is-open'); });
   }
 
   function openBackupPanel() {
@@ -931,14 +931,14 @@
 
     // Update title to show current lab
     const titleEl = overlay.querySelector('.modal-title');
-    if (titleEl) titleEl.textContent = `Backups — Laboratory ${_activeLab}`;
+    if (titleEl) titleEl.textContent = `Backups â€” Laboratory ${_activeLab}`;
 
     list.innerHTML = '';
 
     if (backups.length === 0) {
       empty.style.display = 'block';
     } else {
-      empty.style.display = 'none';
+      empty.classList.remove('is-open');
       backups.forEach((b, idx) => {
         const li = document.createElement('li');
         li.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#f7f9fc;border-radius:6px;border:1px solid #dde5ef;';
@@ -959,7 +959,7 @@
       });
     }
 
-    overlay.style.display = 'flex';
+    overlay.classList.add('is-open');
   }
 
   function restoreBackup(backup) {
@@ -969,11 +969,11 @@
     try { localStorage.setItem('omsc_schedule_data', JSON.stringify(backup.data)); } catch(e) {}
 
     // Close panel and reload to apply
-    document.getElementById('backupOverlay').style.display = 'none';
+    document.getElementById('backupOverlay').classList.remove('is-open');
     location.reload();
   }
 
-  /* ══════════════════════ ARCHIVE ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ARCHIVE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   const ARCHIVE_KEY = 'omsc_schedule_archives'; // shared across all labs
 
   function getArchives() {
@@ -995,20 +995,20 @@
 
     // Panel close
     document.getElementById('archiveClose').addEventListener('click', () => {
-      document.getElementById('archiveOverlay').style.display = 'none';
+      document.getElementById('archiveOverlay').classList.remove('is-open');
     });
     document.getElementById('archiveOverlay').addEventListener('click', e => {
       if (e.target === document.getElementById('archiveOverlay'))
-        document.getElementById('archiveOverlay').style.display = 'none';
+        document.getElementById('archiveOverlay').classList.remove('is-open');
     });
 
     // Viewer close
     document.getElementById('archiveViewerClose').addEventListener('click', () => {
-      document.getElementById('archiveViewerOverlay').style.display = 'none';
+      document.getElementById('archiveViewerOverlay').classList.remove('is-open');
     });
     document.getElementById('archiveViewerOverlay').addEventListener('click', e => {
       if (e.target === document.getElementById('archiveViewerOverlay'))
-        document.getElementById('archiveViewerOverlay').style.display = 'none';
+        document.getElementById('archiveViewerOverlay').classList.remove('is-open');
     });
 
     // Save archive button
@@ -1029,7 +1029,7 @@
     const sem    = (semEl  ? semEl.textContent.trim()  : '1st Semester');
     const year   = (yearEl ? yearEl.textContent.trim() : '');
     document.getElementById('archiveLabel').value =
-      `${sem} ${year} · Laboratory ${_activeLab}`.trim();
+      `${sem} ${year} Â· Laboratory ${_activeLab}`.trim();
 
     saveRow.style.display = showSaveRow ? 'block' : 'none';
     titleEl.textContent   = showSaveRow ? 'Archive Current Semester' : 'Schedule Archives';
@@ -1038,13 +1038,13 @@
     if (archives.length === 0) {
       empty.style.display = 'block';
     } else {
-      empty.style.display = 'none';
+      empty.classList.remove('is-open');
       archives.forEach((arc, idx) => {
         list.appendChild(buildArchiveRow(arc, idx));
       });
     }
 
-    overlay.style.display = 'flex';
+    overlay.classList.add('is-open');
   }
 
   function buildArchiveRow(arc, idx) {
@@ -1055,7 +1055,7 @@
     info.style.cssText = 'flex:1;min-width:0';
     info.innerHTML = `
       <div style="font-size:12px;font-weight:700;color:#1a3a6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-        📦 ${escHtml(arc.label)}
+        ðŸ“¦ ${escHtml(arc.label)}
       </div>
       <div style="font-size:10px;color:#a0aec0;margin-top:2px">
         Saved ${new Date(arc.ts).toLocaleString()}
@@ -1066,12 +1066,12 @@
 
     const viewBtn = document.createElement('button');
     viewBtn.className = 'btn btn-sm btn-outline';
-    viewBtn.textContent = '👁 View';
+    viewBtn.textContent = 'ðŸ‘ View';
     viewBtn.addEventListener('click', () => viewArchive(arc));
 
     const delBtn = document.createElement('button');
     delBtn.className = 'btn btn-sm btn-danger';
-    delBtn.textContent = '✕';
+    delBtn.textContent = 'âœ•';
     delBtn.title = 'Delete archive';
     delBtn.addEventListener('click', () => {
       if (!confirm(`Delete archive "${arc.label}"?`)) return;
@@ -1093,7 +1093,7 @@
     if (!label) { alert('Please enter a label for this archive.'); return; }
 
     const current = load();
-    if (!current) { alert('Nothing to archive — schedule is empty.'); return; }
+    if (!current) { alert('Nothing to archive â€” schedule is empty.'); return; }
 
     const archives = getArchives();
     archives.unshift({
@@ -1106,21 +1106,21 @@
 
     // Refresh panel
     openArchivePanel(true);
-    alert(`✅ Archived as "${label}"`);
+    alert(`âœ… Archived as "${label}"`);
   }
 
   function viewArchive(arc) {
-    document.getElementById('archiveOverlay').style.display = 'none';
+    document.getElementById('archiveOverlay').classList.remove('is-open');
 
     const viewer  = document.getElementById('archiveViewerOverlay');
     const content = document.getElementById('archiveViewerContent');
     const title   = document.getElementById('archiveViewerTitle');
 
-    title.textContent = `📦 ${arc.label}`;
+    title.textContent = `ðŸ“¦ ${arc.label}`;
 
     // Build a read-only HTML table from the archived data
     content.innerHTML = renderArchiveHTML(arc);
-    viewer.style.display = 'flex';
+    viewer.classList.add('is-open');
   }
 
   function renderArchiveHTML(arc) {
@@ -1142,7 +1142,7 @@
 
     let html = `
       <div style="margin-bottom:16px">
-        <div style="font-size:11px;color:#718096">Laboratory ${arc.lab || ''} · Saved ${new Date(arc.ts).toLocaleString()}</div>
+        <div style="font-size:11px;color:#718096">Laboratory ${arc.lab || ''} Â· Saved ${new Date(arc.ts).toLocaleString()}</div>
       </div>
       <div style="overflow-x:auto">
       <table style="border-collapse:collapse;font-size:11px;width:100%">
@@ -1161,7 +1161,7 @@
 
     rows.forEach(row => {
       if (row.type === 'lunch') {
-        html += `<tr><td colspan="${cols.length * 2}" style="background:#fff8e1;text-align:center;font-size:11px;font-weight:700;color:#795200;padding:7px;border:1px solid #ffe082;letter-spacing:.08em">🍽️ &nbsp; L U N C H &nbsp; B R E A K</td></tr>`;
+        html += `<tr><td colspan="${cols.length * 2}" style="background:#fff8e1;text-align:center;font-size:11px;font-weight:700;color:#795200;padding:7px;border:1px solid #ffe082;letter-spacing:.08em">ðŸ½ï¸ &nbsp; L U N C H &nbsp; B R E A K</td></tr>`;
         return;
       }
       html += '<tr>';
@@ -1189,7 +1189,7 @@
         } else {
           html += `<td colspan="${domCs}" ${rs>1?`rowspan="${rs}"`:''}
             style="border:1px solid #dde5ef;background:#fafbfc;text-align:center;color:#b0bec5;font-size:10px;font-style:italic;padding:10px 4px">
-            🔧 Vacant</td>`;
+            ðŸ”§ Vacant</td>`;
         }
         ci += cs;
       }
@@ -1215,14 +1215,14 @@
 
   function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  /* ══════════════════════ INIT ══════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• INIT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
   /* Expose internal functions for excel-import.js */
   window.persistAllCellsPublic    = () => persistAllCells();
   window.patchTableForEditorPublic= () => patchTableForEditor();
   window.syncDeptToLegendPublic   = (raw, label) => syncDeptToLegend(raw, label);
 
-  /* ── Excel Import UI ── */
+  /* â”€â”€ Excel Import UI â”€â”€ */
   function initExcelImport() {
     const btn       = document.getElementById('importExcelBtn');
     const overlay   = document.getElementById('importOverlay');
@@ -1238,12 +1238,12 @@
     btn.addEventListener('click', () => {
       fileInput.value = '';
       runBtn.disabled = true;
-      preview.style.display = 'none';
-      result.style.display  = 'none';
-      overlay.style.display = 'flex';
+      preview.classList.remove('is-open');
+      result.classList.remove('is-open');
+      overlay.classList.add('is-open');
     });
 
-    function closeImport() { overlay.style.display = 'none'; }
+    function closeImport() { overlay.classList.remove('is-open'); }
     closeBtn.addEventListener('click',  closeImport);
     cancelBtn.addEventListener('click', closeImport);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeImport(); });
@@ -1255,7 +1255,7 @@
         const rows = await window.ExcelImport.parseFile(file);
         const valid = rows.filter(r => r.day && r.timeSlot && r.subject && r.instructor);
         preview.innerHTML = `<strong style="color:#1a3a6b">Preview:</strong> Found <strong>${valid.length}</strong> valid class entries` +
-          (rows.length - valid.length > 0 ? ` (${rows.length - valid.length} rows will be skipped — missing required fields)` : '') + '.';
+          (rows.length - valid.length > 0 ? ` (${rows.length - valid.length} rows will be skipped â€” missing required fields)` : '') + '.';
         preview.style.display = 'block';
         runBtn.disabled = valid.length === 0;
       } catch(e) {
@@ -1269,7 +1269,7 @@
       const file = fileInput.files[0];
       if (!file) return;
       runBtn.disabled = true;
-      runBtn.textContent = 'Importing…';
+      runBtn.textContent = 'Importingâ€¦';
       window.ExcelImport.importFile(file, (err, res) => {
         runBtn.textContent = 'Import';
         if (err) {
@@ -1277,7 +1277,7 @@
           result.textContent = 'Import failed: ' + err.message;
         } else {
           result.style.cssText = 'display:block;background:#e8f5e9;color:#2e7d32;padding:10px 12px;border-radius:6px;font-size:12px;margin-top:12px';
-          result.textContent = `✅ Imported ${res.imported} class entries.` +
+          result.textContent = `âœ… Imported ${res.imported} class entries.` +
             (res.skipped > 0 ? ` ${res.skipped} rows skipped.` : '');
           setTimeout(closeImport, 2000);
         }
@@ -1306,3 +1306,4 @@
   });
 
 })();
+
