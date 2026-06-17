@@ -63,6 +63,7 @@
       `<span class="cc-subject">${esc(cell.subject)}</span>` +
       `<span class="cc-instructor">${esc(cell.instructor)}</span>` +
       `<span class="cc-section">${esc(cell.section)}</span>` +
+      (cell.students ? `<span class="cc-students">👥 ${esc(cell.students)} students</span>` : '') +
       (deptDisplay ? `<span class="cc-dept">${esc(deptDisplay)}</span>` : '');
     window.applyCardColor(d, cell.dept);
     return d;

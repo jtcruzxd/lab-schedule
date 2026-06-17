@@ -1019,3 +1019,11 @@ body.compact .sched-table thead th.col-time-sub { width: 52px; }
 @media print {
   .lab-tabs { display: none; }
 }
+
+/* ── Students count on class card ── */
+.class-card .cc-students {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--clr-muted);
+  margin-top: 1px;
+}

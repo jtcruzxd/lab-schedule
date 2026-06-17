@@ -561,6 +561,7 @@
       document.getElementById('f_course').value  = cell.course     || '';
       document.getElementById('f_teacher').value = cell.instructor || '';
       document.getElementById('f_time').value    = cell.time       || '';
+      document.getElementById('f_students').value = cell.students   || '';
       // dept is stored as normalised id; find matching option value
       const deptSel = document.getElementById('f_dept');
       // Try matching by value (normalised id) or by the raw label stored
@@ -619,11 +620,12 @@
       type:'class',
       dept:       deptId,
       deptLabel:  deptLabel,
-      instructor: toProperCase(document.getElementById('f_teacher').value),
-      subject:    toProperCase(document.getElementById('f_subject').value),
-      section:    toProperCase(document.getElementById('f_section').value),
+      instructor: document.getElementById('f_teacher').value.trim().toUpperCase(),
+      subject:    document.getElementById('f_subject').value.trim().toUpperCase(),
+      section:    document.getElementById('f_section').value.trim().toUpperCase(),
       course:     document.getElementById('f_course').value.trim(),
       time:       document.getElementById('f_time').value.trim(),
+      students:   document.getElementById('f_students').value.trim(),
     };
 
     if (row && row.type==='normal') {

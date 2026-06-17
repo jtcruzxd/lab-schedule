@@ -123,7 +123,7 @@
         deptLabel:  deptLabel,
         instructor: toProperCase(instructor),
         subject:    toProperCase(subject),
-        section:    toProperCase(row.section  || ''),
+        section:    (row.section   || '').trim().toUpperCase(),
         course:     (row.course   || '').trim(),
         time:       (row.time     || '').trim(),
       };
