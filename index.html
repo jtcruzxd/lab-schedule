@@ -71,6 +71,7 @@
     <div style="display:flex;gap:8px">
       <button class="btn btn-sm btn-outline" id="addColBtn">+ Column</button>
       <button class="btn btn-sm btn-outline" id="addRowBtn">+ Row</button>
+      <button class="btn btn-sm btn-outline" id="importExcelBtn">📥 Import Excel</button>
       <button class="btn btn-sm btn-outline" id="showBackupsBtn">🕓 Backups</button>
       <button class="btn btn-sm btn-outline" id="archiveBtn">📦 Archive</button>
       <button class="btn btn-sm btn-danger"  id="resetAllBtn">↺ Reset</button>
@@ -138,7 +139,47 @@
       </div>
     </div>
   </div>
-  <div class="modal-overlay" id="modalOverlay" style="display:none" role="dialog" aria-modal="true">
+  <!-- ══ EXCEL IMPORT MODAL ══ -->
+  <div class="modal-overlay" id="importOverlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <h2 class="modal-title">Import Schedule from Excel</h2>
+        <button class="modal-close" id="importClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:#718096;margin-bottom:16px">
+          Upload a <strong>.xlsx</strong> or <strong>.csv</strong> file. Each row is one class entry.
+          Required columns: <strong>Day, Time Slot, Subject, Instructor</strong>.
+        </p>
+
+        <div style="margin-bottom:16px">
+          <a href="template/schedule-template.csv" download="schedule-template.csv"
+             class="btn btn-outline btn-sm" style="text-decoration:none;display:inline-flex">
+            ⬇️ Download Template
+          </a>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label" style="font-size:11px;font-weight:700;color:#1a3a6b;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">
+            Select File (.xlsx or .csv)
+          </label>
+          <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv"
+            style="font-size:13px;padding:6px;border:1.5px solid #dde5ef;border-radius:6px;width:100%;background:#fafbfc" />
+        </div>
+
+        <div id="importPreview" style="display:none;margin-bottom:16px;padding:10px 12px;background:#f7f9fc;border-radius:6px;border:1px solid #dde5ef;font-size:12px"></div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="importCancelBtn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="importRunBtn" disabled>Import</button>
+        </div>
+
+        <div id="importResult" style="display:none;margin-top:12px;padding:10px 12px;border-radius:6px;font-size:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CLASS ENTRY MODAL ══ -->
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title" id="modalTitle">Assign Class</h2>
@@ -338,5 +379,10 @@
   <script src="js/data.js"></script>
   <script src="js/render.js"></script>
   <script src="js/editor.js"></script>
+  <!-- SheetJS for Excel import -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="js/excel-import.js"></script>
+  <!-- Firebase Auth guard (module) -->
+  <script type="module" src="js/auth.js"></script>
 </body>
 </html>

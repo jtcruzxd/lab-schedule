@@ -1216,6 +1216,74 @@
   function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   /* ══════════════════════ INIT ══════════════════════ */
+
+  /* Expose internal functions for excel-import.js */
+  window.persistAllCellsPublic    = () => persistAllCells();
+  window.patchTableForEditorPublic= () => patchTableForEditor();
+  window.syncDeptToLegendPublic   = (raw, label) => syncDeptToLegend(raw, label);
+
+  /* ── Excel Import UI ── */
+  function initExcelImport() {
+    const btn       = document.getElementById('importExcelBtn');
+    const overlay   = document.getElementById('importOverlay');
+    const closeBtn  = document.getElementById('importClose');
+    const cancelBtn = document.getElementById('importCancelBtn');
+    const fileInput = document.getElementById('importFileInput');
+    const runBtn    = document.getElementById('importRunBtn');
+    const preview   = document.getElementById('importPreview');
+    const result    = document.getElementById('importResult');
+
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+      fileInput.value = '';
+      runBtn.disabled = true;
+      preview.style.display = 'none';
+      result.style.display  = 'none';
+      overlay.style.display = 'flex';
+    });
+
+    function closeImport() { overlay.style.display = 'none'; }
+    closeBtn.addEventListener('click',  closeImport);
+    cancelBtn.addEventListener('click', closeImport);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeImport(); });
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) { runBtn.disabled = true; return; }
+      try {
+        const rows = await window.ExcelImport.parseFile(file);
+        const valid = rows.filter(r => r.day && r.timeSlot && r.subject && r.instructor);
+        preview.innerHTML = `<strong style="color:#1a3a6b">Preview:</strong> Found <strong>${valid.length}</strong> valid class entries` +
+          (rows.length - valid.length > 0 ? ` (${rows.length - valid.length} rows will be skipped — missing required fields)` : '') + '.';
+        preview.style.display = 'block';
+        runBtn.disabled = valid.length === 0;
+      } catch(e) {
+        preview.innerHTML = `<span style="color:#c62828">Could not read file: ${e.message}</span>`;
+        preview.style.display = 'block';
+        runBtn.disabled = true;
+      }
+    });
+
+    runBtn.addEventListener('click', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      runBtn.disabled = true;
+      runBtn.textContent = 'Importing…';
+      window.ExcelImport.importFile(file, (err, res) => {
+        runBtn.textContent = 'Import';
+        if (err) {
+          result.style.cssText = 'display:block;background:#ffebee;color:#c62828;padding:10px 12px;border-radius:6px;font-size:12px;margin-top:12px';
+          result.textContent = 'Import failed: ' + err.message;
+        } else {
+          result.style.cssText = 'display:block;background:#e8f5e9;color:#2e7d32;padding:10px 12px;border-radius:6px;font-size:12px;margin-top:12px';
+          result.textContent = `✅ Imported ${res.imported} class entries.` +
+            (res.skipped > 0 ? ` ${res.skipped} rows skipped.` : '');
+          setTimeout(closeImport, 2000);
+        }
+      });
+    });
+  }
   window.addEventListener('load', () => {
     initLabTabs();
     patchTableForEditor();
@@ -1226,6 +1294,7 @@
     initAutoBackup();
     initBackupPanel();
     initArchive();
+    initExcelImport();
     /* restore logo if stored */
     const s = load();
     if (s && s.logoDataUrl) applyLogo(s.logoDataUrl);
