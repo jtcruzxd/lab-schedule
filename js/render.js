@@ -179,66 +179,110 @@
   /* ══════════════════════
      CONFLICT DETECTION
      ══════════════════════ */
+
+  /* Parse "7:30 - 9:00" or "7:30 – 9:00" → { start, end } in minutes since midnight.
+     Returns null if unparseable. */
+  function parseTimeRange(str) {
+    if (!str) return null;
+    // normalise dashes/en-dashes
+    const s = str.replace(/[–—−]/g, '-').trim();
+    const parts = s.split('-').map(p => p.trim());
+    if (parts.length < 2) return null;
+
+    function toMins(t) {
+      const m = t.match(/(\d{1,2}):(\d{2})/);
+      if (!m) return null;
+      let h = parseInt(m[1], 10);
+      const min = parseInt(m[2], 10);
+      // Ambiguous single-digit hours: treat < 7 as PM (1:00 = 13:00, etc.)
+      // The schedule runs 7:00 AM – 11:00 PM
+      // AM block: 7:00 – 12:59  → hours 7-12 stay as-is
+      // PM block: 1:00 – 11:00  → hours 1-6 become 13-18, 7-11 become 19-23
+      // We rely on row position (AM vs PM) passed in, not time string alone.
+      // For overlap detection we just need relative ordering, so leave as 24h:
+      return h * 60 + min;
+    }
+
+    const start = toMins(parts[0]);
+    const end   = toMins(parts[1]);
+    if (start === null || end === null) return null;
+    return { start, end };
+  }
+
+  /* Two ranges overlap if one starts before the other ends */
+  function rangesOverlap(a, b) {
+    return a.start < b.end && b.start < a.end;
+  }
+
   function detectConflicts() {
     const tbody = document.getElementById('schedBody');
     if (!tbody) return;
 
     const numCols = (SCHEDULE_DATA.columns || []).length;
 
-    // Build a map: colIndex -> [ { time, schedTd, timeTd, ri } ]
-    const colTimeMap = {};
-    for (let ci = 0; ci < numCols; ci++) colTimeMap[ci] = [];
-
     // Clear old conflict markers
     tbody.querySelectorAll('.conflict-card').forEach(el => el.classList.remove('conflict-card'));
     tbody.querySelectorAll('.conflict-badge').forEach(el => el.remove());
     tbody.querySelectorAll('.time-col-per-day.conflict-time').forEach(el => el.classList.remove('conflict-time'));
 
-    // Collect all class cells with their time values
-    Array.from(tbody.querySelectorAll('tr')).forEach((tr, ri) => {
+    // Collect all class cells per column with parsed time ranges
+    // colEntries[ci] = [ { range, card, timeTd } ]
+    const colEntries = {};
+    for (let ci = 0; ci < numCols; ci++) colEntries[ci] = [];
+
+    const lunchIdx = SCHEDULE_DATA.rows.findIndex(r => r.type === 'lunch');
+
+    Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
       if (tr.classList.contains('row-lunch')) return;
+      const ri = parseInt(tr.dataset.rowIndex, 10);
+      const isAM = !isNaN(ri) && lunchIdx >= 0 && ri < lunchIdx;
+
       tr.querySelectorAll('td.slot').forEach(td => {
         const ci   = parseInt(td.dataset.colIndex, 10);
         if (isNaN(ci)) return;
         const card = td.querySelector('.class-card');
         if (!card) return;
-        // Get time from adjacent time cell
-        const timeTd = tr.querySelector(`td[data-col-index="${ci}"][data-is-time="1"]`);
-        const timeVal = timeTd ? timeTd.textContent.trim() : '';
-        if (!timeVal) return;
-        colTimeMap[ci] = colTimeMap[ci] || [];
-        colTimeMap[ci].push({ timeVal, card, td, timeTd });
+        const timeTd  = tr.querySelector(`td[data-col-index="${ci}"][data-is-time="1"]`);
+        const timeStr = timeTd ? timeTd.textContent.trim() : '';
+        if (!timeStr) return;
+
+        let range = parseTimeRange(timeStr);
+        if (!range) return;
+
+        // Adjust PM times: if after lunch and start < 7*60 (i.e. 1:00–6:59), add 12 hours
+        if (!isAM) {
+          if (range.start < 7 * 60)  range.start += 12 * 60;
+          if (range.end   <= range.start) range.end += 12 * 60;
+        }
+
+        colEntries[ci].push({ range, card, timeTd });
       });
     });
 
-    // Find duplicates per column
+    // Detect overlaps per column
     let conflictCount = 0;
-    Object.values(colTimeMap).forEach(entries => {
-      // Group by time value
-      const groups = {};
-      entries.forEach(e => {
-        if (!groups[e.timeVal]) groups[e.timeVal] = [];
-        groups[e.timeVal].push(e);
-      });
-      Object.entries(groups).forEach(([time, group]) => {
-        if (group.length < 2) return;
-        // Mark all entries in this group as conflicts
-        group.forEach(e => {
-          e.card.classList.add('conflict-card');
-          if (e.timeTd) e.timeTd.classList.add('conflict-time');
-          // Add badge if not already there
-          if (!e.card.querySelector('.conflict-badge')) {
-            const badge = document.createElement('span');
-            badge.className = 'conflict-badge';
-            badge.textContent = '⚠ TIME CONFLICT';
-            e.card.insertBefore(badge, e.card.firstChild);
-            conflictCount++;
-          }
-        });
-      });
+    Object.values(colEntries).forEach(entries => {
+      for (let i = 0; i < entries.length; i++) {
+        for (let j = i + 1; j < entries.length; j++) {
+          if (!rangesOverlap(entries[i].range, entries[j].range)) continue;
+
+          // Flag both
+          [entries[i], entries[j]].forEach(e => {
+            e.card.classList.add('conflict-card');
+            if (e.timeTd) e.timeTd.classList.add('conflict-time');
+            if (!e.card.querySelector('.conflict-badge')) {
+              const badge = document.createElement('span');
+              badge.className = 'conflict-badge';
+              badge.textContent = 'TIME CONFLICT';
+              e.card.insertBefore(badge, e.card.firstChild);
+              conflictCount++;
+            }
+          });
+        }
+      }
     });
 
-    // Show/update conflict summary banner
+    // Show/hide conflict banner
     let banner = document.getElementById('conflictBanner');
     if (conflictCount > 0) {
       if (!banner) {
@@ -248,7 +292,7 @@
         const main = document.getElementById('schedule');
         if (main) main.insertAdjacentElement('beforebegin', banner);
       }
-      banner.innerHTML = `⚠️ <strong>${conflictCount} time conflict${conflictCount > 1 ? 's' : ''} detected</strong> — Multiple classes share the same time slot in the same column. Review highlighted cells.`;
+      banner.innerHTML = `<strong>⚠️ ${conflictCount} time conflict${conflictCount > 1 ? 's' : ''} detected</strong> — Overlapping class times found in the same day column. Review the highlighted cells.`;
       banner.style.display = 'flex';
     } else {
       if (banner) banner.style.display = 'none';
