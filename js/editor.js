@@ -69,42 +69,46 @@
     });
 
     reset.addEventListener('click', () => {
-      if (!confirm('Reset everything? This will clear ALL time slots, columns, classes, and settings.')) return;
+      if (!confirm('Reset the schedule? This will clear all time slots, columns, legend entries, and software list. PC Inventory and header info will be kept.')) return;
+
+      // Preserve PC inventory before wiping localStorage
+      const pcInventory = SCHEDULE_DATA.pcInventory.map(r => ({...r}));
+      const pcTotal     = SCHEDULE_DATA.pcTotal;
 
       // Clear localStorage
       localStorage.removeItem(STORAGE_KEY);
 
-      // Wipe SCHEDULE_DATA in-memory to a blank state
+      // Wipe schedule rows and columns
       SCHEDULE_DATA.columns = [];
       SCHEDULE_DATA.rows    = [];
 
-      // Re-render the empty table
+      // Reset legend to defaults from data.js
+      SCHEDULE_DATA.departments = [
+        { id:'scoa',   label:'SCOA',    fullName:'School of Computing & Allied',      color:'#2d5fa6' },
+        { id:'cbam',   label:'CBAM',    fullName:'Business & Accountancy Management', color:'#2e7d32' },
+        { id:'hm',     label:'HM',      fullName:'Hospitality Management',            color:'#e65100' },
+        { id:'cast',   label:'CAST/IT', fullName:'Arts, Sciences & Technology',       color:'#6a1b9a' },
+        { id:'vacant', label:'',        fullName:'Vacant / Lab Maintenance',          color:'#cbd5e0' },
+      ];
+
+      // Reset software list
+      SCHEDULE_DATA.software = [
+        { dept:'SCOA',    programs:'MS Office' },
+        { dept:'CBAM',    programs:'Canva / Project Dev / MS Office' },
+        { dept:'HM',      programs:'MyHotel PMS' },
+        { dept:'CAST/IT', programs:'Canva / MS Office' },
+      ];
+
+      // Restore PC inventory (not cleared)
+      SCHEDULE_DATA.pcInventory = pcInventory;
+      SCHEDULE_DATA.pcTotal     = pcTotal;
+
+      // Re-render everything
       window.renderTable();
-      patchTableForEditor();
-
-      // Also reset legend, PC, software to defaults from data.js
       window.renderLegend();
-      window.renderPC();
       window.renderSoftware();
-
-      // Reset header fields to data.js defaults
-      const defaults = {
-        hRepublic:    'Republic of the Philippines',
-        hInstitution: 'Occidental Mindoro State College',
-        hCollege:     'College of Arts, Sciences and Technology',
-        hContact:     'San Jose, Occidental Mindoro · www.omsc.edu.ph · omsc_9747@yahoo.com · Tel/Fax: (043) 491-1460',
-        hSemester:    '1st Semester',
-        hYear:        '2026 – 2027',
-        toolbarTitle: '🖥️ Computer Laboratory — Main Campus',
-        sig1Name:     'JOVEN T. CRUZ',
-        sig1Role:     'Laboratory Custodian',
-        sig2Name:     'JOSELITO D. AGUID, PhDs, LPT, CHRA',
-        sig2Role:     'Director for Instruction, CAST / Immediate Supervisor',
-      };
-      Object.entries(defaults).forEach(([id, val]) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val;
-      });
+      window.renderPC();
+      patchTableForEditor();
 
       // Reset logo back to placeholder
       const img   = document.getElementById('logoImg');
