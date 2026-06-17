@@ -720,25 +720,6 @@
   }
 
   /* ══════════════════════ DEPT → LEGEND SYNC ══════════════════════ */
-  /**
-   * When a class is saved with a dept string, auto-add it to the legend
-   * if no entry with that id already exists. Uses the dept string as both
-   * id and label, assigns a stable auto-generated color.
-   */
-  function syncDeptToLegend(deptStr) {
-    if (!deptStr) return;
-
-    /* Normalise: trim, lowercase for id */
-    const id    = deptStr.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const label = deptStr.trim();
-
-    const existing = SCHEDULE_DATA.departments.find(d => d.id === id || d.label.toLowerCase() === label.toLowerCase());
-    if (existing) {
-      /* Update card colors to use existing color */
-      document.querySelectorAll(`.class-card[data-dept="${id}"]`).forEach(c => window.applyCardColor(c, id));
-      return;
-    }
-
   function syncDeptToLegend(deptStr) {
     if (!deptStr) return;
     const id    = deptStr.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
