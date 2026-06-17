@@ -1027,3 +1027,48 @@ body.compact .sched-table thead th.col-time-sub { width: 52px; }
   color: var(--clr-muted);
   margin-top: 1px;
 }
+
+/* ════════════════════════════
+   CONFLICT DETECTION
+   ════════════════════════════ */
+.conflict-banner {
+  display: none;
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-left: 5px solid #e65100;
+  color: #7c4700;
+  font-size: 12px;
+  padding: 10px 20px;
+  margin: 8px 24px 0;
+  border-radius: var(--radius-md);
+  align-items: center;
+  gap: 8px;
+  max-width: 1252px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.class-card.conflict-card {
+  border-left-color: #e53e3e !important;
+  background: #fff5f5 !important;
+  outline: 2px solid #e53e3e;
+  outline-offset: -1px;
+}
+
+.conflict-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  background: #e53e3e;
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-bottom: 4px;
+  letter-spacing: .06em;
+}
+
+.time-col-per-day.conflict-time {
+  background: #fff5f5 !important;
+  color: #e53e3e !important;
+  font-weight: 800;
+}

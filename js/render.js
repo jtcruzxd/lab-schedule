@@ -171,7 +171,91 @@
 
       tbody.appendChild(tr);
     });
+
+    // Run conflict detection after table is built
+    setTimeout(detectConflicts, 0);
   };
+
+  /* ══════════════════════
+     CONFLICT DETECTION
+     ══════════════════════ */
+  function detectConflicts() {
+    const tbody = document.getElementById('schedBody');
+    if (!tbody) return;
+
+    const numCols = (SCHEDULE_DATA.columns || []).length;
+
+    // Build a map: colIndex -> [ { time, schedTd, timeTd, ri } ]
+    const colTimeMap = {};
+    for (let ci = 0; ci < numCols; ci++) colTimeMap[ci] = [];
+
+    // Clear old conflict markers
+    tbody.querySelectorAll('.conflict-card').forEach(el => el.classList.remove('conflict-card'));
+    tbody.querySelectorAll('.conflict-badge').forEach(el => el.remove());
+    tbody.querySelectorAll('.time-col-per-day.conflict-time').forEach(el => el.classList.remove('conflict-time'));
+
+    // Collect all class cells with their time values
+    Array.from(tbody.querySelectorAll('tr')).forEach((tr, ri) => {
+      if (tr.classList.contains('row-lunch')) return;
+      tr.querySelectorAll('td.slot').forEach(td => {
+        const ci   = parseInt(td.dataset.colIndex, 10);
+        if (isNaN(ci)) return;
+        const card = td.querySelector('.class-card');
+        if (!card) return;
+        // Get time from adjacent time cell
+        const timeTd = tr.querySelector(`td[data-col-index="${ci}"][data-is-time="1"]`);
+        const timeVal = timeTd ? timeTd.textContent.trim() : '';
+        if (!timeVal) return;
+        colTimeMap[ci] = colTimeMap[ci] || [];
+        colTimeMap[ci].push({ timeVal, card, td, timeTd });
+      });
+    });
+
+    // Find duplicates per column
+    let conflictCount = 0;
+    Object.values(colTimeMap).forEach(entries => {
+      // Group by time value
+      const groups = {};
+      entries.forEach(e => {
+        if (!groups[e.timeVal]) groups[e.timeVal] = [];
+        groups[e.timeVal].push(e);
+      });
+      Object.entries(groups).forEach(([time, group]) => {
+        if (group.length < 2) return;
+        // Mark all entries in this group as conflicts
+        group.forEach(e => {
+          e.card.classList.add('conflict-card');
+          if (e.timeTd) e.timeTd.classList.add('conflict-time');
+          // Add badge if not already there
+          if (!e.card.querySelector('.conflict-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'conflict-badge';
+            badge.textContent = '⚠ TIME CONFLICT';
+            e.card.insertBefore(badge, e.card.firstChild);
+            conflictCount++;
+          }
+        });
+      });
+    });
+
+    // Show/update conflict summary banner
+    let banner = document.getElementById('conflictBanner');
+    if (conflictCount > 0) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'conflictBanner';
+        banner.className = 'conflict-banner';
+        const main = document.getElementById('schedule');
+        if (main) main.insertAdjacentElement('beforebegin', banner);
+      }
+      banner.innerHTML = `⚠️ <strong>${conflictCount} time conflict${conflictCount > 1 ? 's' : ''} detected</strong> — Multiple classes share the same time slot in the same column. Review highlighted cells.`;
+      banner.style.display = 'flex';
+    } else {
+      if (banner) banner.style.display = 'none';
+    }
+  }
+
+  window.detectConflicts = detectConflicts;
 
   /* expand cells array to flat numCols-wide array */
   window.expandCells = function(cells, numCols) {
