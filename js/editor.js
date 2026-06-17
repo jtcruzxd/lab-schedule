@@ -147,39 +147,53 @@
     Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
       const tc = tr.querySelector('.time-col');
       if (!tc) {
+        // lunch row — advance past the lunch entry in SCHEDULE_DATA
         while (si < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[si].type !== 'lunch') si++;
         si++; return;
       }
       while (si < SCHEDULE_DATA.rows.length && SCHEDULE_DATA.rows[si].type !== 'normal') si++;
       if (si >= SCHEDULE_DATA.rows.length) return;
+
+      // Stamp the CURRENT index on the TR so click handlers always read it fresh
       tr.dataset.rowIndex = si;
+
+      // Edit hint
       if (!tc.querySelector('.edit-hint')) {
-        const h = document.createElement('span'); h.className='edit-hint'; h.textContent='✎'; tc.appendChild(h);
+        const h = document.createElement('span'); h.className = 'edit-hint'; h.textContent = '✎';
+        tc.appendChild(h);
       }
-      /* also add del-row button */
-      if (!tc.querySelector('.del-row-btn')) {
-        const d = document.createElement('button'); d.className='del-row-btn'; d.textContent='✕'; d.title='Remove row';
-        d.addEventListener('click', e => { e.stopPropagation(); delRow(si); });
-        tc.appendChild(d);
-      }
+
+      // Delete-row button — remove stale ones first, then add fresh one with correct captured index
+      const existingDel = tc.querySelector('.del-row-btn');
+      if (existingDel) existingDel.remove();
+
+      const capturedSi = si; // capture correct index for this closure
+      const d = document.createElement('button');
+      d.className = 'del-row-btn'; d.textContent = '✕'; d.title = 'Remove row';
+      d.addEventListener('click', e => { e.stopPropagation(); delRow(capturedSi); });
+      tc.appendChild(d);
+
+      // Stamp col index on every slot td
       let ci = 0;
       tr.querySelectorAll('.slot').forEach(td => {
         td.dataset.colIndex = ci;
-        ci += parseInt(td.getAttribute('colspan')||'1',10);
+        ci += parseInt(td.getAttribute('colspan') || '1', 10);
       });
+
       si++;
     });
-    /* del column buttons in thead */
+
+    // Delete-column buttons in thead — always rebuild to avoid stale indices
     const headRow = document.getElementById('headRow');
     if (headRow) {
+      headRow.querySelectorAll('.del-col-btn').forEach(b => b.remove());
       Array.from(headRow.querySelectorAll('th')).forEach(th => {
         const ci = parseInt(th.dataset.colIndex, 10);
         if (isNaN(ci)) return;
-        if (!th.querySelector('.del-col-btn')) {
-          const d = document.createElement('button'); d.className='del-col-btn'; d.textContent='✕'; d.title='Remove column';
-          d.addEventListener('click', e => { e.stopPropagation(); delColumn(ci); });
-          th.appendChild(d);
-        }
+        const d = document.createElement('button');
+        d.className = 'del-col-btn'; d.textContent = '✕'; d.title = 'Remove column';
+        d.addEventListener('click', e => { e.stopPropagation(); delColumn(ci); });
+        th.appendChild(d);
       });
     }
   }
@@ -255,21 +269,29 @@
     if (!row || row.type !== 'normal') return;
     const cur = row.label;
     const inp = document.createElement('input');
-    inp.type='text'; inp.value=cur; inp.className='form-control';
-    inp.style.cssText='width:100%;font-size:11px;padding:3px 6px;';
+    inp.type = 'text'; inp.value = cur; inp.className = 'form-control';
+    inp.style.cssText = 'width:100%;font-size:11px;padding:3px 6px;';
     const orig = td.innerHTML;
-    td.innerHTML=''; td.appendChild(inp);
+    td.innerHTML = ''; td.appendChild(inp);
     inp.focus(); inp.select();
+
     function commit() {
       const v = inp.value.trim() || cur;
       row.label = v;
-      const s = get(); if(!s.rowLabels) s.rowLabels=SCHEDULE_DATA.rows.map(r=>r.type==='normal'?r.label:null); s.rowLabels[ri]=v; save(s);
-      td.innerHTML = h(v)+'<span class="edit-hint">✎</span><button class="del-row-btn" title="Remove row">✕</button>';
-      td.querySelector('.del-row-btn').addEventListener('click', e=>{e.stopPropagation();delRow(ri);});
+      const s = get();
+      if (!s.rowLabels) s.rowLabels = SCHEDULE_DATA.rows.map(r => r.type==='normal' ? r.label : null);
+      s.rowLabels[ri] = v;
+      save(s);
+      // Re-render the full table so all indices stay clean
+      window.renderTable();
+      patchTableForEditor();
     }
-    function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
     inp.addEventListener('blur', commit);
-    inp.addEventListener('keydown', e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){td.innerHTML=orig;}});
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+      if (e.key === 'Escape') { td.innerHTML = orig; }
+    });
   }
 
   /* ══════════════════════ MERGE MODAL ══════════════════════ */
@@ -318,14 +340,16 @@
     const ri = parseInt(document.getElementById('f_row').value, 10);
     const ci = parseInt(document.getElementById('f_col').value, 10);
     const row = SCHEDULE_DATA.rows[ri];
-    if (row && row.type==='normal') {
+    if (row && row.type === 'normal') {
       const nc   = (SCHEDULE_DATA.columns||[]).length || 6;
       const flat = window.expandCells(row.cells, nc);
-      flat[ci] = {type:'vacant'};
-      row.cells = flat;
+      flat[ci]   = { type: 'vacant' };
+      row.cells  = flat;
     }
     persistAllCells();
-    applyCellToDOM(ri, ci, {type:'vacant'});
+    // Full re-render so all data-row-index values are fresh
+    window.renderTable();
+    patchTableForEditor();
     closeModal();
   });
 
@@ -403,7 +427,9 @@
       row.cells = flat;
     }
     persistAllCells();
-    applyCellToDOM(ri, ci, cell);
+    // Full re-render keeps all data-row-index attributes fresh
+    window.renderTable();
+    patchTableForEditor();
 
     /* Sync dept to legend AFTER saving */
     syncDeptToLegend(deptRaw);
@@ -412,12 +438,22 @@
   });
 
   function applyCellToDOM(ri, ci, cell) {
+    // Always query fresh — row index may have shifted after re-render
     const tr = document.querySelector(`tr[data-row-index="${ri}"]`);
     if (!tr) return;
-    const td = tr.querySelector(`td[data-col-index="${ci}"]`);
+    // Find the td whose data-col-index matches ci (handles colspan gaps)
+    let td = tr.querySelector(`td[data-col-index="${ci}"]`);
+    if (!td) {
+      // Fallback: find the slot td that contains this col index (may be colspan)
+      td = Array.from(tr.querySelectorAll('td.slot')).find(t => {
+        const start = parseInt(t.dataset.colIndex, 10);
+        const span  = parseInt(t.getAttribute('colspan') || '1', 10);
+        return ci >= start && ci < start + span;
+      });
+    }
     if (!td) return;
     td.innerHTML = '';
-    td.appendChild(cell.type==='class' ? window.buildCard(cell) : window.buildVacant());
+    td.appendChild(cell.type === 'class' ? window.buildCard(cell) : window.buildVacant());
   }
 
   function validate() {
