@@ -460,8 +460,18 @@
       document.getElementById('f_course').value  = cell.course     || '';
       document.getElementById('f_teacher').value = cell.instructor || '';
       document.getElementById('f_time').value    = cell.time       || '';
-      const deptDisplay = cell.deptLabel || cell.dept || '';
-      document.getElementById('f_dept').value    = deptDisplay;
+      // dept is stored as normalised id; find matching option value
+      const deptSel = document.getElementById('f_dept');
+      // Try matching by value (normalised id) or by the raw label stored
+      const deptStored = cell.dept || '';
+      let matched = false;
+      Array.from(deptSel.options).forEach(opt => {
+        const optId = opt.value.toLowerCase().replace(/[^a-z0-9]/g,'_');
+        if (opt.value === deptStored || optId === deptStored) {
+          deptSel.value = opt.value; matched = true;
+        }
+      });
+      if (!matched) deptSel.value = '';
       document.getElementById('modalTitle').textContent = 'Edit Class';
     } else {
       form.reset();
@@ -498,11 +508,16 @@
 
     const deptRaw = document.getElementById('f_dept').value.trim();
     const deptId  = deptRaw.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    // Get the human-readable label from the selected option
+    const deptSel   = document.getElementById('f_dept');
+    const deptLabel = deptSel.options[deptSel.selectedIndex]
+      ? deptSel.options[deptSel.selectedIndex].text.trim()
+      : deptRaw;
 
     const cell = {
       type:'class',
       dept:       deptId,
-      deptLabel:  deptRaw,
+      deptLabel:  deptLabel,
       instructor: document.getElementById('f_teacher').value.trim(),
       subject:    document.getElementById('f_subject').value.trim(),
       section:    document.getElementById('f_section').value.trim(),
@@ -724,11 +739,18 @@
       return;
     }
 
-    /* Generate a color based on string hash for consistency */
+  function syncDeptToLegend(deptStr) {
+    if (!deptStr) return;
+    const id    = deptStr.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const label = deptStr.trim();
+    const existing = SCHEDULE_DATA.departments.find(d => d.id === id || d.label.toLowerCase() === label.toLowerCase());
+    if (existing) {
+      document.querySelectorAll(`.class-card[data-dept="${id}"]`).forEach(c => window.applyCardColor(c, id));
+      return;
+    }
     const color = stringToColor(label);
     SCHEDULE_DATA.departments.push({ id, label, fullName: label, color });
     window.renderLegend();
-    /* Persist the full departments array so new entries survive refresh */
     window.persistMeta('departments', SCHEDULE_DATA.departments.map(d => ({...d})));
     window.persistMeta('deptColors', buildDeptColorsMap());
     window.persistMeta('deptLabels', buildDeptLabelsMap());
