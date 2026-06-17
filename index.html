@@ -3,51 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Computer Laboratory Schedule – OMSC College of Arts, Sciences and Technology, Main Campus, 1st Semester 2026–2027" />
-  <meta property="og:title" content="OMSC CAST – Computer Laboratory Schedule" />
-  <meta property="og:description" content="1st Semester 2026–2027 lab schedule for the Computer Laboratory, Main Campus." />
-  <meta property="og:type" content="website" />
+  <meta name="description" content="Computer Laboratory Schedule – OMSC CAST" />
   <title>Computer Lab Schedule | OMSC CAST</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-  <!-- ══ SKIP NAV (accessibility) ══ -->
   <a href="#schedule" class="skip-link">Skip to schedule</a>
 
   <!-- ══ HEADER ══ -->
-  <header class="site-header">
+  <header class="site-header" id="siteHeader">
     <div class="header-inner">
-      <div class="header-crest" aria-hidden="true">
-        <div class="crest-circle">
-          <span class="crest-top">OMSC</span>
+
+      <!-- Logo / Crest -->
+      <div class="header-crest" id="headerCrest">
+        <div class="crest-circle" id="crestCircle">
+          <span class="crest-top" id="crestTop">OMSC</span>
           <span class="crest-star">★</span>
-          <span class="crest-bot">EST. 1969</span>
+          <span class="crest-bot" id="crestBot">EST. 1969</span>
         </div>
+        <!-- Logo image (hidden until uploaded) -->
+        <img id="logoImg" class="logo-img" src="" alt="Institution logo" hidden />
+        <!-- Upload trigger (edit mode only) -->
+        <label class="logo-upload-btn" id="logoUploadBtn" title="Upload logo" hidden>
+          📷
+          <input type="file" id="logoFileInput" accept="image/*" style="display:none" />
+        </label>
       </div>
+
       <div class="header-text">
-        <p class="republic">Republic of the Philippines</p>
-        <h1>Occidental Mindoro State College</h1>
-        <p class="college">College of Arts, Sciences and Technology</p>
-        <p class="contact">
-          San Jose, Occidental Mindoro &nbsp;·&nbsp;
-          <a href="http://www.omsc.edu.ph" target="_blank" rel="noopener">www.omsc.edu.ph</a> &nbsp;·&nbsp;
-          <a href="mailto:omsc_9747@yahoo.com">omsc_9747@yahoo.com</a> &nbsp;·&nbsp;
-          Tel/Fax: (043) 491-1460
-        </p>
+        <p class="republic" id="hRepublic" data-field="republic">Republic of the Philippines</p>
+        <h1 id="hInstitution" data-field="institution">Occidental Mindoro State College</h1>
+        <p class="college" id="hCollege" data-field="college">College of Arts, Sciences and Technology</p>
+        <p class="contact" id="hContact" data-field="contact">San Jose, Occidental Mindoro · www.omsc.edu.ph · omsc_9747@yahoo.com · Tel/Fax: (043) 491-1460</p>
       </div>
+
       <div class="header-badge">
         <span class="badge-label">Academic Year</span>
-        <span class="badge-sem">1<sup>st</sup> Semester</span>
-        <span class="badge-year">2026 – 2027</span>
+        <span class="badge-sem" id="hSemester" data-field="semester">1st Semester</span>
+        <span class="badge-year" id="hYear" data-field="academicYear">2026 – 2027</span>
       </div>
+
     </div>
   </header>
 
   <!-- ══ TOOLBAR ══ -->
   <div class="toolbar" role="toolbar" aria-label="Schedule actions">
     <div class="toolbar-left">
-      <span class="toolbar-title">🖥️ Computer Laboratory — Main Campus</span>
+      <span class="toolbar-title" id="toolbarTitle" data-field="labTitle">🖥️ Computer Laboratory — Main Campus</span>
     </div>
     <div class="toolbar-right">
       <button class="btn btn-outline" id="toggleViewBtn" aria-pressed="false">
@@ -62,9 +65,9 @@
     </div>
   </div>
 
-  <!-- ══ EDIT BANNER (shown in edit mode) ══ -->
+  <!-- ══ EDIT BANNER ══ -->
   <div class="edit-banner" id="editBanner" hidden>
-    <span>✏️ <strong>Edit Mode</strong> — Click any cell to assign or clear a class. Click a time label to rename the slot.</span>
+    <span>✏️ <strong>Edit Mode ON</strong> — Click header text to edit · Click legend colors · Click table cells · Click time labels</span>
     <button class="btn btn-sm btn-danger" id="resetAllBtn">↺ Reset to Default</button>
   </div>
 
@@ -86,18 +89,16 @@
               <input type="text" id="f_day" class="form-control" readonly />
             </div>
             <div class="form-group">
-              <label for="f_timeslot">Time Slot (row label)</label>
+              <label for="f_timeslot">Time Slot Label</label>
               <input type="text" id="f_timeslot" class="form-control" placeholder="e.g. 9:15 – 10:45" />
             </div>
           </div>
-
           <div class="form-row">
             <div class="form-group form-group--full">
               <label for="f_subject">Subject <span class="req">*</span></label>
               <input type="text" id="f_subject" class="form-control" placeholder="e.g. Computer Programming 1" required />
             </div>
           </div>
-
           <div class="form-row">
             <div class="form-group">
               <label for="f_section">Year &amp; Section <span class="req">*</span></label>
@@ -108,7 +109,6 @@
               <input type="text" id="f_course" class="form-control" placeholder="e.g. BSIT" />
             </div>
           </div>
-
           <div class="form-row">
             <div class="form-group">
               <label for="f_teacher">Teacher <span class="req">*</span></label>
@@ -119,19 +119,14 @@
               <input type="text" id="f_time" class="form-control" placeholder="e.g. 9:15 – 10:45" />
             </div>
           </div>
-
           <div class="form-row">
-            <div class="form-group">
+            <div class="form-group form-group--full">
               <label for="f_dept">Department</label>
               <select id="f_dept" class="form-control">
-                <option value="scoa">SCOA – Computing &amp; Allied</option>
-                <option value="cbam">CBAM – Business &amp; Accountancy</option>
-                <option value="hm">HM – Hospitality Management</option>
-                <option value="cast">CAST/IT – Arts, Sciences &amp; Technology</option>
+                <!-- Populated dynamically from departments data -->
               </select>
             </div>
           </div>
-
           <div class="modal-actions">
             <button type="button" class="btn btn-danger btn-sm" id="clearCellBtn">Clear Cell</button>
             <div style="display:flex;gap:8px;">
@@ -159,9 +154,7 @@
             <th scope="col">Saturday</th>
           </tr>
         </thead>
-        <tbody id="schedBody">
-          <!-- Populated by schedule.js -->
-        </tbody>
+        <tbody id="schedBody"></tbody>
       </table>
     </div>
   </main>
@@ -170,40 +163,19 @@
   <section class="info-strip" aria-label="Additional information">
     <div class="info-grid">
 
-      <!-- Legend -->
       <div class="info-card" id="legendCard">
         <h2 class="card-title">Legend</h2>
-        <ul class="legend-list" id="legendList">
-          <!-- Populated by schedule.js -->
-        </ul>
+        <ul class="legend-list" id="legendList"></ul>
       </div>
 
-      <!-- PC Inventory -->
       <div class="info-card" id="pcCard">
         <h2 class="card-title">PC Inventory</h2>
-        <table class="pc-table" aria-label="PC inventory by department">
-          <thead>
-            <tr>
-              <th>Dept</th>
-              <th>Processor</th>
-              <th>≤ 2022</th>
-              <th>2023</th>
-              <th>2024</th>
-              <th>2025</th>
-            </tr>
-          </thead>
-          <tbody id="pcBody">
-            <!-- Populated by schedule.js -->
-          </tbody>
-        </table>
+        <div id="pcTableWrap"></div>
       </div>
 
-      <!-- Software -->
       <div class="info-card" id="softwareCard">
         <h2 class="card-title">Software in Use</h2>
-        <dl class="software-list" id="softwareList">
-          <!-- Populated by schedule.js -->
-        </dl>
+        <div id="softwareList"></div>
       </div>
 
     </div>
@@ -213,17 +185,16 @@
   <footer class="signatories-bar">
     <div class="sig-group">
       <p class="sig-label">Prepared by:</p>
-      <p class="sig-name">JOVEN T. CRUZ</p>
-      <p class="sig-role">Laboratory Custodian</p>
+      <p class="sig-name" id="sig1Name" data-field="sig1Name">JOVEN T. CRUZ</p>
+      <p class="sig-role" id="sig1Role" data-field="sig1Role">Laboratory Custodian</p>
     </div>
     <div class="sig-group">
       <p class="sig-label">Noted by:</p>
-      <p class="sig-name">JOSELITO D. AGUID, PhDs, LPT, CHRA</p>
-      <p class="sig-role">Director for Instruction, CAST / Immediate Supervisor</p>
+      <p class="sig-name" id="sig2Name" data-field="sig2Name">JOSELITO D. AGUID, PhDs, LPT, CHRA</p>
+      <p class="sig-role" id="sig2Role" data-field="sig2Role">Director for Instruction, CAST / Immediate Supervisor</p>
     </div>
   </footer>
 
-  <!-- ══ SITE FOOTER ══ -->
   <footer class="site-footer">
     <p>© 2026 Occidental Mindoro State College · College of Arts, Sciences and Technology</p>
   </footer>

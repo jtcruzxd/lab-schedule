@@ -575,3 +575,139 @@ select.form-control { cursor: pointer; }
   border-color: #c62828;
   box-shadow: 0 0 0 3px rgba(198,40,40,.12);
 }
+
+/* ════════════════════════════
+   EDITABLE HEADER FIELDS
+   ════════════════════════════ */
+[data-field] { cursor: default; transition: background .15s, outline .15s; border-radius: 3px; }
+body.edit-mode [data-field] {
+  cursor: text;
+  outline: 1.5px dashed rgba(255,255,255,.5);
+  padding: 2px 5px;
+  min-width: 20px;
+}
+body.edit-mode [data-field]:hover { outline-color: var(--clr-accent); }
+body.edit-mode [data-field]:focus {
+  outline: 2px solid var(--clr-accent);
+  background: rgba(255,255,255,.12);
+}
+/* toolbar title editable */
+body.edit-mode #toolbarTitle[data-field] {
+  outline-color: var(--clr-primary);
+  color: var(--clr-primary);
+}
+body.edit-mode #toolbarTitle[data-field]:hover { background: #e8f0fb; }
+/* signatory fields */
+body.edit-mode .sig-name[data-field],
+body.edit-mode .sig-role[data-field] {
+  outline-color: var(--clr-primary);
+}
+
+/* ── Logo upload ── */
+.header-crest { position: relative; }
+.logo-img {
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,.4);
+}
+.logo-upload-btn {
+  position: absolute; bottom: -2px; right: -2px;
+  background: var(--clr-accent); color: #000;
+  border-radius: 50%; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  transition: transform .15s;
+}
+.logo-upload-btn:hover { transform: scale(1.15); }
+.logo-upload-btn[hidden] { display: none; }
+
+/* ════════════════════════════
+   EDITABLE LEGEND
+   ════════════════════════════ */
+.legend-item { position: relative; }
+.legend-swatch-wrap {
+  position: relative; flex-shrink: 0;
+  display: flex; align-items: center;
+}
+.legend-color-input {
+  position: absolute; opacity: 0;
+  width: 100%; height: 100%;
+  cursor: pointer; border: none; padding: 0;
+  pointer-events: none;
+}
+body.edit-mode .legend-color-input { pointer-events: auto; cursor: pointer; }
+body.edit-mode .legend-swatch { outline: 2px solid rgba(0,0,0,.25); cursor: pointer; }
+
+.legend-label-input {
+  font-size: 12px; font-family: inherit;
+  border: none; background: transparent;
+  color: inherit; width: 100%;
+  pointer-events: none;
+}
+body.edit-mode .legend-label-input {
+  pointer-events: auto;
+  border-bottom: 1.5px dashed var(--clr-border);
+  outline: none; cursor: text;
+}
+body.edit-mode .legend-label-input:focus { border-color: var(--clr-primary-lt); }
+
+/* ════════════════════════════
+   EDITABLE PC INVENTORY
+   ════════════════════════════ */
+.pc-cell-input {
+  font-size: 11px; font-family: inherit;
+  border: none; background: transparent;
+  text-align: center; width: 100%;
+  color: inherit; pointer-events: none;
+}
+.pc-cell-input.left { text-align: left; font-weight: 700; }
+body.edit-mode .pc-cell-input {
+  pointer-events: auto;
+  border-bottom: 1.5px dashed var(--clr-border);
+  outline: none;
+}
+body.edit-mode .pc-cell-input:focus { border-color: var(--clr-primary-lt); background: #f0f6ff; }
+
+.pc-add-row-btn {
+  display: none; margin-top: 8px; width: 100%;
+  background: #e8f0fb; border: 1.5px dashed var(--clr-primary-lt);
+  color: var(--clr-primary); font-size: 11px; font-weight: 600;
+  border-radius: var(--radius-sm); padding: 4px; cursor: pointer;
+}
+body.edit-mode .pc-add-row-btn { display: block; }
+.pc-del-btn {
+  display: none; background: none; border: none;
+  color: #c62828; cursor: pointer; font-size: 13px; padding: 0 4px;
+}
+body.edit-mode .pc-del-btn { display: inline; }
+
+/* ════════════════════════════
+   EDITABLE SOFTWARE LIST
+   ════════════════════════════ */
+.sw-input {
+  font-size: 11px; font-family: inherit;
+  border: none; background: transparent;
+  color: inherit; pointer-events: none; width: 100%;
+}
+.sw-input.sw-dept { font-weight: 700; color: var(--clr-primary); }
+body.edit-mode .sw-input {
+  pointer-events: auto;
+  border-bottom: 1.5px dashed var(--clr-border);
+  outline: none;
+}
+body.edit-mode .sw-input:focus { border-color: var(--clr-primary-lt); background: #f0f6ff; }
+
+.sw-add-btn {
+  display: none; margin-top: 8px; width: 100%;
+  background: #e8f0fb; border: 1.5px dashed var(--clr-primary-lt);
+  color: var(--clr-primary); font-size: 11px; font-weight: 600;
+  border-radius: var(--radius-sm); padding: 5px; cursor: pointer;
+}
+body.edit-mode .sw-add-btn { display: block; }
+.sw-del-btn {
+  display: none; background: none; border: none;
+  color: #c62828; cursor: pointer; font-size: 13px; padding: 0 2px;
+}
+body.edit-mode .sw-del-btn { display: inline; }
