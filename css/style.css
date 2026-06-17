@@ -821,3 +821,45 @@ body.edit-mode .sw-del-btn { display:inline; }
 .form-control[readonly] { background:#f0f4f8; color:var(--clr-muted); cursor:default; }
 .form-control.invalid { border-color:#c62828; box-shadow:0 0 0 3px rgba(198,40,40,.12); }
 .modal-actions { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:16px; border-top:1px solid var(--clr-border); }
+
+/* ════════════════════════════
+   ADD ROW / COLUMN POSITION PICKER
+   ════════════════════════════ */
+.add-pos-overlay {
+  position: fixed; inset: 0; z-index: 9100;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  animation: fadeIn .15s ease;
+}
+.add-pos-modal {
+  background: var(--clr-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 48px rgba(0,0,0,.28);
+  width: 100%; max-width: 400px;
+  overflow: hidden;
+  animation: slideUp .18s ease;
+}
+.pos-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pos-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--clr-border);
+  background: #f7f9fc;
+  color: var(--clr-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s, border-color .15s;
+}
+.pos-btn:hover {
+  background: var(--clr-primary);
+  color: #fff;
+  border-color: var(--clr-primary);
+}

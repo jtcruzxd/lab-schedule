@@ -74,27 +74,12 @@
 
     /* Add column */
     document.getElementById('addColBtn').addEventListener('click', () => {
-      const name = prompt('Column header name:', 'Sunday');
-      if (!name) return;
-      if (!SCHEDULE_DATA.columns) SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      SCHEDULE_DATA.columns.push(name.trim());
-      SCHEDULE_DATA.rows.forEach(row => { if (row.type === 'normal') row.cells.push({ type:'vacant' }); });
-      patch('columns', SCHEDULE_DATA.columns);
-      persistAllCells();
-      window.renderTable();
-      patchTableForEditor();
+      openAddColDialog();
     });
 
     /* Add row */
     document.getElementById('addRowBtn').addEventListener('click', () => {
-      const label = prompt('Time slot label:', 'New Time Slot');
-      if (!label) return;
-      const numCols = (SCHEDULE_DATA.columns||[]).length || 6;
-      const cells = Array.from({length: numCols}, () => ({type:'vacant'}));
-      SCHEDULE_DATA.rows.push({ type:'normal', label: label.trim(), cells });
-      persistAllCells();
-      window.renderTable();
-      patchTableForEditor();
+      openAddRowDialog();
     });
 
     /* Add legend entry */
@@ -359,7 +344,9 @@
       document.getElementById('f_course').value  = cell.course     || '';
       document.getElementById('f_teacher').value = cell.instructor || '';
       document.getElementById('f_time').value    = cell.time       || '';
-      document.getElementById('f_dept').value    = cell.dept       || '';
+      /* show the human-readable label, fall back to raw dept id */
+      const deptDisplay = cell.deptLabel || cell.dept || '';
+      document.getElementById('f_dept').value    = deptDisplay;
       document.getElementById('modalTitle').textContent = 'Edit Class';
     } else {
       form.reset();
@@ -395,9 +382,13 @@
       if (tr) { const tc=tr.querySelector('.time-col'); if(tc){ const hin=tc.querySelector('.edit-hint'); const del=tc.querySelector('.del-row-btn'); tc.textContent=newLabel; if(hin)tc.appendChild(hin); if(del)tc.appendChild(del); }}
     }
 
+    const deptRaw = document.getElementById('f_dept').value.trim();
+    const deptId  = deptRaw.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
     const cell = {
       type:'class',
-      dept:       document.getElementById('f_dept').value.trim(),
+      dept:       deptId,
+      deptLabel:  deptRaw,
       instructor: document.getElementById('f_teacher').value.trim(),
       subject:    document.getElementById('f_subject').value.trim(),
       section:    document.getElementById('f_section').value.trim(),
@@ -413,6 +404,10 @@
     }
     persistAllCells();
     applyCellToDOM(ri, ci, cell);
+
+    /* Sync dept to legend AFTER saving */
+    syncDeptToLegend(deptRaw);
+
     closeModal();
   });
 
@@ -435,6 +430,202 @@
   }
   function clearVal() {
     document.querySelectorAll('.form-control.invalid').forEach(e=>e.classList.remove('invalid'));
+  }
+
+  /* ══════════════════════ ADD ROW DIALOG ══════════════════════ */
+  function lunchIndex() {
+    return SCHEDULE_DATA.rows.findIndex(r => r.type === 'lunch');
+  }
+
+  function openAddRowDialog() {
+    /* Build a small inline modal */
+    const li = lunchIndex();
+    const hasBefore = li > 0;
+    const hasAfter  = li >= 0 && li < SCHEDULE_DATA.rows.length - 1;
+
+    const html = `
+      <div class="add-pos-overlay" id="addRowOverlay">
+        <div class="add-pos-modal">
+          <div class="modal-header">
+            <span class="modal-title">Add Time Slot Row</span>
+            <button class="modal-close" id="addRowClose">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom:14px">
+              <label>Time Slot Label</label>
+              <input type="text" id="newRowLabel" class="form-control" value="New Time Slot" />
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+              <label>Position</label>
+              <div class="pos-btn-group">
+                ${hasBefore ? '<button class="pos-btn" data-pos="before-lunch">☀️ Morning (before lunch)</button>' : ''}
+                ${hasAfter  ? '<button class="pos-btn" data-pos="after-lunch">🌤️ Afternoon (after lunch)</button>' : ''}
+                <button class="pos-btn" data-pos="bottom">⬇️ Bottom</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    document.getElementById('addRowClose').addEventListener('click', () => {
+      document.getElementById('addRowOverlay').remove();
+    });
+
+    document.querySelectorAll('.pos-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const label = document.getElementById('newRowLabel').value.trim() || 'New Time Slot';
+        const pos   = btn.dataset.pos;
+        insertRow(label, pos);
+        document.getElementById('addRowOverlay').remove();
+      });
+    });
+  }
+
+  function insertRow(label, pos) {
+    const numCols = (SCHEDULE_DATA.columns||[]).length || 6;
+    const cells   = Array.from({length: numCols}, () => ({type:'vacant'}));
+    const newRow  = { type:'normal', label, cells };
+    const li      = lunchIndex();
+
+    if (pos === 'before-lunch' && li > 0) {
+      SCHEDULE_DATA.rows.splice(li, 0, newRow);        // insert right before lunch
+    } else if (pos === 'after-lunch' && li >= 0) {
+      SCHEDULE_DATA.rows.splice(li + 1, 0, newRow);    // insert right after lunch
+    } else {
+      SCHEDULE_DATA.rows.push(newRow);                  // bottom
+    }
+
+    persistAllCells();
+    window.renderTable();
+    patchTableForEditor();
+  }
+
+  /* ══════════════════════ ADD COLUMN DIALOG ══════════════════════ */
+  function openAddColDialog() {
+    const html = `
+      <div class="add-pos-overlay" id="addColOverlay">
+        <div class="add-pos-modal">
+          <div class="modal-header">
+            <span class="modal-title">Add Column</span>
+            <button class="modal-close" id="addColClose">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group" style="margin-bottom:14px">
+              <label>Column Name</label>
+              <input type="text" id="newColName" class="form-control" value="New Day" />
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+              <label>Insert Position</label>
+              <div id="colPosBtns" class="pos-btn-group">
+                <!-- populated below -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const cols    = SCHEDULE_DATA.columns || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const btnWrap = document.getElementById('colPosBtns');
+
+    /* "Before X" buttons for each existing column */
+    cols.forEach((col, ci) => {
+      const b = document.createElement('button');
+      b.className = 'pos-btn';
+      b.textContent = `Before "${col}"`;
+      b.dataset.colPos = ci;
+      b.addEventListener('click', () => {
+        insertColumn(document.getElementById('newColName').value.trim() || 'New Day', parseInt(b.dataset.colPos,10));
+        document.getElementById('addColOverlay').remove();
+      });
+      btnWrap.appendChild(b);
+    });
+
+    /* "After last" */
+    const bEnd = document.createElement('button');
+    bEnd.className = 'pos-btn';
+    bEnd.textContent = `After "${cols[cols.length-1]}" (end)`;
+    bEnd.addEventListener('click', () => {
+      insertColumn(document.getElementById('newColName').value.trim() || 'New Day', cols.length);
+      document.getElementById('addColOverlay').remove();
+    });
+    btnWrap.appendChild(bEnd);
+
+    document.getElementById('addColClose').addEventListener('click', () => {
+      document.getElementById('addColOverlay').remove();
+    });
+  }
+
+  function insertColumn(name, atIndex) {
+    if (!SCHEDULE_DATA.columns) SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    SCHEDULE_DATA.columns.splice(atIndex, 0, name);
+
+    SCHEDULE_DATA.rows.forEach(row => {
+      if (row.type !== 'normal') return;
+      const nc   = SCHEDULE_DATA.columns.length - 1; // before insert
+      const flat = window.expandCells(row.cells, nc);
+      flat.splice(atIndex, 0, {type:'vacant'});
+      row.cells = flat;
+    });
+
+    patch('columns', SCHEDULE_DATA.columns);
+    persistAllCells();
+    window.renderTable();
+    patchTableForEditor();
+  }
+
+  /* ══════════════════════ DEPT → LEGEND SYNC ══════════════════════ */
+  /**
+   * When a class is saved with a dept string, auto-add it to the legend
+   * if no entry with that id already exists. Uses the dept string as both
+   * id and label, assigns a stable auto-generated color.
+   */
+  function syncDeptToLegend(deptStr) {
+    if (!deptStr) return;
+
+    /* Normalise: trim, lowercase for id */
+    const id    = deptStr.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const label = deptStr.trim();
+
+    const existing = SCHEDULE_DATA.departments.find(d => d.id === id || d.label.toLowerCase() === label.toLowerCase());
+    if (existing) {
+      /* Update card colors to use existing color */
+      document.querySelectorAll(`.class-card[data-dept="${id}"]`).forEach(c => window.applyCardColor(c, id));
+      return;
+    }
+
+    /* Generate a color based on string hash for consistency */
+    const color = stringToColor(label);
+    SCHEDULE_DATA.departments.push({ id, label, fullName: label, color });
+    window.renderLegend();
+    window.persistMeta('deptColors', buildDeptColorsMap());
+    window.persistMeta('deptLabels', buildDeptLabelsMap());
+  }
+
+  function stringToColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const h = Math.abs(hash) % 360;
+    return hslToHex(h, 65, 38);
+  }
+
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const k = n => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
+    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+  }
+
+  function buildDeptColorsMap() {
+    const m = {}; SCHEDULE_DATA.departments.forEach(d => { m[d.id] = d.color; }); return m;
+  }
+  function buildDeptLabelsMap() {
+    const m = {}; SCHEDULE_DATA.departments.forEach(d => { m[d.id] = {label:d.label, fullName:d.fullName}; }); return m;
   }
 
   /* ══════════════════════ INIT ══════════════════════ */

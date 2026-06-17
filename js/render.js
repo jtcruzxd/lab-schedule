@@ -20,7 +20,10 @@
 
   /* ── dept color helpers ── */
   window.getDeptColor = function(deptId) {
-    const d = SCHEDULE_DATA.departments.find(d => d.id === deptId);
+    if (!deptId) return '#2d5fa6';
+    /* match by id first, then by normalised label */
+    const d = SCHEDULE_DATA.departments.find(d => d.id === deptId)
+           || SCHEDULE_DATA.departments.find(d => d.label.toLowerCase().replace(/[^a-z0-9]/g,'_') === deptId);
     return d ? d.color : '#2d5fa6';
   };
   window.hexToRgba = function(hex, alpha) {
