@@ -10,12 +10,12 @@ import { getAuth, onAuthStateChanged, signOut }
 
 // ── REPLACE with your Firebase project config ──
 const firebaseConfig = {
-  apiKey:            "REPLACE_WITH_YOUR_API_KEY",
-  authDomain:        "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket:     "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId:             "REPLACE_WITH_YOUR_APP_ID"
+  apiKey:            "AIzaSyC0q5d1CebfI7_52YyRlyI84PpzrevLiOQ",
+  authDomain:        "omsc-lab-schedule.firebaseapp.com",
+  projectId:         "omsc-lab-schedule",
+  storageBucket:     "omsc-lab-schedule.firebasestorage.app",
+  messagingSenderId: "225638311654",
+  appId:             "1:225638311654:web:841778f26d3150cde33d27"
 };
 
 const app  = initializeApp(firebaseConfig);
