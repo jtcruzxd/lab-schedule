@@ -42,11 +42,11 @@
   };
 
   /* ══════════════════════
-     VACANT CELL
+     VACANT CELL — renders as truly empty (no "Vacant" label)
      ══════════════════════ */
   window.buildVacant = function() {
     const d = el('div','vacant-cell');
-    d.innerHTML = '<span class="vc-icon">🔧</span><span class="vc-text">Vacant</span>';
+    // Empty — no icon, no text
     return d;
   };
 
@@ -77,37 +77,33 @@
     const tbody  = document.getElementById('schedBody');
     if (!tbody || !thead) return;
 
-    const cols    = SCHEDULE_DATA.columns || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const STATIC_COLS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const cols    = STATIC_COLS;
     const numCols = cols.length;
 
     /* ── TWO HEADER ROWS ──
-       Row 1: Day names (each spans 2 cols: content + time)
+       Row 1: Day names (each spans 2 cols: content + time) — STATIC, not editable
        Row 2: "Schedule" | "Time" repeated per day              */
     thead.innerHTML = '';
 
     const row1 = el('tr','head-row-days');
     const row2 = el('tr','head-row-labels', '');
-    row2.id    = 'headRow'; // editor patches del-col buttons onto row2 ths
+    row2.id    = 'headRow';
 
     cols.forEach((col, ci) => {
-      /* Day group header spanning 2 cols */
+      /* Day group header — static, no colIndex data needed for edit */
       const dayTh = el('th','col-day-group', esc(col));
       dayTh.setAttribute('colspan', '2');
-      dayTh.dataset.colIndex = ci;   // needed for edit (rename / del)
       row1.appendChild(dayTh);
 
-      /* Sub-headers */
       const schedTh = el('th','col-sched','Schedule');
-      schedTh.dataset.colIndex = ci;
-      schedTh.dataset.subCol   = 'sched';
-
       const timeTh2 = el('th','col-time-sub','Time');
-      timeTh2.dataset.colIndex = ci;
-      timeTh2.dataset.subCol   = 'time';
-
       row2.appendChild(schedTh);
       row2.appendChild(timeTh2);
     });
+
+    // Keep SCHEDULE_DATA.columns in sync so existing cell logic works
+    SCHEDULE_DATA.columns = cols.slice();
 
     thead.appendChild(row1);
     thead.appendChild(row2);

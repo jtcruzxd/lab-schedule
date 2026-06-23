@@ -86,11 +86,9 @@
       { processor:'Core i3', y2022:0,  y2023:0, y2024:0, y2025:0 },
     ];
     SCHEDULE_DATA.pcTotal = 51;
-    const makeRow = () => ({ type:'normal', label:'', cells: Array.from({length:6}, () => ({type:'vacant'})) });
+    // Default: only the lunch break row — no vacant rows
     SCHEDULE_DATA.rows = [
-      makeRow(), makeRow(), makeRow(), makeRow(),
-      { type:'lunch' },
-      makeRow(), makeRow(), makeRow(), makeRow(), makeRow(), makeRow(),
+      { type: 'lunch' }
     ];
   }
 
@@ -115,7 +113,7 @@
     const s = load();
     if (!s) return;
 
-    if (s.columns)       SCHEDULE_DATA.columns      = s.columns;
+    if (s.columns)       SCHEDULE_DATA.columns      = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; // columns are always static
     if (s.rowLabels)     s.rowLabels.forEach((l,i) => { const r = SCHEDULE_DATA.rows[i]; if (r && r.type==='normal' && l!==null) r.label = l; });
     if (s.cells)         Object.entries(s.cells).forEach(([k,cell]) => { const [ri,ci] = k.split('-').map(Number); const row = SCHEDULE_DATA.rows[ri]; if (!row||row.type!=='normal') return; const nc = SCHEDULE_DATA.columns ? SCHEDULE_DATA.columns.length : 6; const flat = window.expandCells(row.cells, nc); flat[ci] = cell===null?{type:'vacant'}:cell; row.cells = flat; });
     if (s.deptColors)    Object.entries(s.deptColors).forEach(([id,c]) => { const d = SCHEDULE_DATA.departments.find(x=>x.id===id); if(d) d.color=c; });
@@ -175,37 +173,28 @@
     });
 
     reset.addEventListener('click', () => {
-      if (!confirm('Reset the schedule? Time slots, legend, and software will be cleared. PC Inventory is kept.')) return;
+      if (!confirm('Reset the schedule? Everything on this tab will be cleared — rows, entries, legend, and software. PC Inventory is kept.')) return;
 
       // Preserve PC inventory
       const pcInventory = SCHEDULE_DATA.pcInventory.map(r => ({...r}));
       const pcTotal     = SCHEDULE_DATA.pcTotal;
 
-      // Clear localStorage
+      // Wipe stored data for this lab
       localStorage.removeItem(STORAGE_KEY);
 
-      // Reset columns to default 6
-      SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
-      // Reset rows: 4 morning + lunch + 6 afternoon, all vacant, no labels
-      const makeRow = () => ({ type:'normal', label:'', cells: Array.from({length:6}, () => ({type:'vacant'})) });
-      SCHEDULE_DATA.rows = [
-        makeRow(), makeRow(), makeRow(), makeRow(),
-        { type:'lunch' },
-        makeRow(), makeRow(), makeRow(), makeRow(), makeRow(), makeRow(),
-      ];
-
-      // Clear legend
-      SCHEDULE_DATA.departments = [];
-
-      // Clear software
-      SCHEDULE_DATA.software = [];
+      // Reset all schedule data to clean defaults
+      resetScheduleDataToDefault();
 
       // Restore PC inventory
       SCHEDULE_DATA.pcInventory = pcInventory;
       SCHEDULE_DATA.pcTotal     = pcTotal;
 
-      // Re-render
+      // Persist the restored PC inventory back so it survives a reload
+      persistAllCells();
+      window.persistMeta('pcInventory', SCHEDULE_DATA.pcInventory.map(r => ({...r})));
+      window.persistMeta('pcTotal',     SCHEDULE_DATA.pcTotal);
+
+      // Re-render everything
       window.renderTable();
       window.renderLegend();
       window.renderSoftware();
@@ -217,11 +206,6 @@
       const crest = document.getElementById('crestPlaceholder');
       if (img)   { img.src = ''; img.classList.remove('is-open'); }
       if (crest) { crest.classList.add('is-open'); }
-    });
-
-    /* Add column */
-    document.getElementById('addColBtn').addEventListener('click', () => {
-      openAddColDialog();
     });
 
     /* Add row */
@@ -258,39 +242,7 @@
       el.addEventListener('blur', () => { if (document.body.classList.contains('edit-mode')) persistAllHeader(); });
       el.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); el.blur(); } });
     });
-    /* editable column headers â€” dblclick on day-group th in row1 */
-    document.getElementById('schedHead').addEventListener('dblclick', e => {
-      if (!document.body.classList.contains('edit-mode')) return;
-      const th = e.target.closest('th.col-day-group');
-      if (!th) return;
-      const ci = parseInt(th.dataset.colIndex, 10);
-      if (isNaN(ci)) return;
-      editColumnHeader(th, ci);
-    });
-  }
-
-  function editColumnHeader(th, ci) {
-    // Strip del-btn text from value
-    const orig = (th.firstChild && th.firstChild.nodeType === 3)
-      ? th.firstChild.textContent.trim()
-      : th.textContent.replace('X','').trim();
-    const inp  = document.createElement('input');
-    inp.type = 'text'; inp.value = orig;
-    inp.style.cssText = 'width:80%;font-size:11px;background:rgba(255,255,255,.2);border:none;color:#fff;text-align:center;padding:2px 4px;';
-    th.innerHTML = '';
-    th.appendChild(inp);
-    inp.focus(); inp.select();
-    function commit() {
-      const v = inp.value.trim() || orig;
-      if (!SCHEDULE_DATA.columns) SCHEDULE_DATA.columns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      SCHEDULE_DATA.columns[ci] = v;
-      patch('columns', SCHEDULE_DATA.columns);
-      window.renderTable();
-      patchTableForEditor();
-    }
-    inp.addEventListener('blur', commit);
-    inp.addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();inp.blur();} if(e.key==='Escape'){window.renderTable();patchTableForEditor();} });
-  }
+    // Column headers are static (Mon-Sat) — no rename on double-click
 
   /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TABLE PATCHING â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   function patchTableForEditor() {
@@ -341,17 +293,7 @@
 
     // â”€â”€ Del-col buttons on day-group ths (row1) â”€â”€
     const schedHead = document.getElementById('schedHead');
-    if (schedHead) {
-      schedHead.querySelectorAll('.del-col-btn').forEach(b => b.remove());
-      schedHead.querySelectorAll('th.col-day-group').forEach(th => {
-        const ci = parseInt(th.dataset.colIndex, 10);
-        if (isNaN(ci)) return;
-        const d = document.createElement('button');
-        d.className = 'del-col-btn'; d.textContent = '\u2715'; d.title = 'Remove column';
-        d.addEventListener('click', e => { e.stopPropagation(); delColumn(ci); });
-        th.appendChild(d);
-      });
-    }
+    // Columns are static (Mon–Sat) — no delete buttons on day headers
   }
 
   function delRow(ri) {

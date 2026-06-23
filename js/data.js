@@ -1,7 +1,7 @@
 /**
  * data.js — OMSC CAST Computer Laboratory Schedule
- * Default state: 6 columns, 4 morning rows, lunch, 6 afternoon rows.
- * Legend and software are empty by default.
+ * Default state: fixed 6 columns (Mon–Sat), no rows, just a lunch break row.
+ * Days are static — always Monday through Saturday.
  */
 
 const SCHEDULE_DATA = {
@@ -9,7 +9,7 @@ const SCHEDULE_DATA = {
   semester:     "1st Semester",
   academicYear: "2026–2027",
 
-  /* ── Columns ── */
+  /* ── Columns — STATIC, always Mon–Sat ── */
   columns: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
 
   /* ── Departments / Legend — empty by default ── */
@@ -26,18 +26,8 @@ const SCHEDULE_DATA = {
   /* ── Software — empty by default ── */
   software: [],
 
-  /* ── Rows: 4 morning + lunch + 6 afternoon ── */
+  /* ── Rows: only the lunch break row by default (no vacant rows) ── */
   rows: [
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "lunch" },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
-    { type: "normal", label: "", cells: [ {type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"},{type:"vacant"} ] },
+    { type: "lunch" }
   ]
 };

@@ -72,6 +72,22 @@
     });
   }
 
+  /* Parse a time label like "7:30 – 9:00" or "1:00 PM" into minutes for sorting */
+  function parseTimeLabel(label) {
+    if (!label) return 9999;
+    const s = String(label).replace(/[–—−]/g, '-').trim();
+    const m = s.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+    if (!m) return 9999;
+    let h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    const ampm = (m[3] || '').toLowerCase();
+    if (ampm === 'pm' && h !== 12) h += 12;
+    if (ampm === 'am' && h === 12) h = 0;
+    // Heuristic for unlabelled AM/PM: hours 1–6 are PM (afternoon)
+    if (!ampm && h >= 1 && h <= 6) h += 12;
+    return h * 60 + min;
+  }
+
   /* Apply parsed rows to SCHEDULE_DATA */
   function applyRows(rows) {
     const cols   = SCHEDULE_DATA.columns || [];
@@ -101,7 +117,7 @@
         r.type === 'normal' && normalise(r.label) === normalise(timeSlot));
 
       if (rowIdx === -1) {
-        // Create a new row at the bottom
+        // Create a new row
         const numCols = cols.length;
         const newRow = {
           type: 'normal',
@@ -142,6 +158,20 @@
 
       imported++;
     });
+
+    // Auto-sort rows: keep lunch row in place, sort normal rows by their time label
+    const lunchIdx = SCHEDULE_DATA.rows.findIndex(r => r.type === 'lunch');
+    if (lunchIdx !== -1) {
+      const before = SCHEDULE_DATA.rows.slice(0, lunchIdx).filter(r => r.type === 'normal');
+      const after  = SCHEDULE_DATA.rows.slice(lunchIdx + 1).filter(r => r.type === 'normal');
+      before.sort((a, b) => parseTimeLabel(a.label) - parseTimeLabel(b.label));
+      after.sort((a,  b) => parseTimeLabel(a.label) - parseTimeLabel(b.label));
+      SCHEDULE_DATA.rows = [...before, { type: 'lunch' }, ...after];
+    } else {
+      const normals = SCHEDULE_DATA.rows.filter(r => r.type === 'normal');
+      normals.sort((a, b) => parseTimeLabel(a.label) - parseTimeLabel(b.label));
+      SCHEDULE_DATA.rows = normals;
+    }
 
     return { imported, skipped };
   }
