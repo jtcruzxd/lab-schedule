@@ -34,11 +34,8 @@
     return `rgba(${r},${g},${b},${alpha})`;
   };
   window.applyCardColor = function(card, deptId) {
-    const color = window.getDeptColor(deptId);
-    card.style.borderLeftColor = color;
-    card.style.background = window.hexToRgba(color, 0.09);
-    const badge = card.querySelector('.cc-time');
-    if (badge) badge.style.background = color;
+    // Colors are handled purely by CSS [data-dept] selectors
+    // This is kept for backward compat with legend color picker calls
   };
 
   /* ══════════════════════
@@ -55,16 +52,16 @@
      ══════════════════════ */
   window.buildCard = function(cell) {
     const d = el('div','class-card');
-    d.dataset.dept = cell.dept || '';
+    d.dataset.dept = (cell.dept || '').toLowerCase();
     d.setAttribute('role','group');
     const deptDisplay = cell.deptLabel || cell.dept || '';
     d.innerHTML =
       `<span class="cc-subject">${esc(cell.subject)}</span>` +
       `<span class="cc-instructor">${esc(cell.instructor)}</span>` +
       `<span class="cc-section">${esc(cell.section)}</span>` +
-      (cell.students ? `<span class="cc-students">👥 ${esc(cell.students)} students</span>` : '') +
+      (cell.students ? `<span class="cc-students">${esc(cell.students)} students</span>` : '') +
       (deptDisplay ? `<span class="cc-dept">${esc(deptDisplay)}</span>` : '');
-    // CSS handles color via data-dept attribute — no inline styles needed
+    // Color applied purely via CSS [data-dept] selectors — no inline styles
     return d;
   };
 
