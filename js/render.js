@@ -53,6 +53,9 @@
   window.buildCard = function(cell) {
     const d = el('div','class-card');
     d.dataset.dept = (cell.dept || '').toLowerCase();
+    // Store time on the card so conflict detection works even when colspan > 1
+    // (colspan cells have no adjacent timeTd)
+    if (cell.time) d.dataset.time = cell.time;
     d.setAttribute('role','group');
     const deptDisplay = cell.deptLabel || cell.dept || '';
     d.innerHTML =
@@ -143,6 +146,7 @@
         /* ── Schedule (content) cell ── */
         const schedTd = el('td','slot');
         schedTd.dataset.colIndex = ci;
+        schedTd.dataset.colSpan  = cs; // logical colspan (number of day columns spanned)
         if (rs > 1) schedTd.setAttribute('rowspan', rs);
         if (cs > 1) schedTd.setAttribute('colspan', cs * 2); // each col = 2 DOM cols
         schedTd.appendChild(cell.type === 'class' ? window.buildCard(cell) : window.buildVacant());
@@ -217,7 +221,9 @@
     tbody.querySelectorAll('.conflict-badge').forEach(el => el.remove());
     tbody.querySelectorAll('.time-col-per-day.conflict-time').forEach(el => el.classList.remove('conflict-time'));
 
-    // Collect all class cells per column with parsed time ranges
+    // Collect all class cells per column with parsed time ranges.
+    // A cell with colspan > 1 occupies multiple day columns — register it in
+    // every column it spans so cross-column comparisons work correctly.
     // colEntries[ci] = [ { range, card, timeTd } ]
     const colEntries = {};
     for (let ci = 0; ci < numCols; ci++) colEntries[ci] = [];
@@ -230,12 +236,16 @@
       const isAM = !isNaN(ri) && lunchIdx >= 0 && ri < lunchIdx;
 
       tr.querySelectorAll('td.slot').forEach(td => {
-        const ci   = parseInt(td.dataset.colIndex, 10);
+        const ci = parseInt(td.dataset.colIndex, 10);
         if (isNaN(ci)) return;
         const card = td.querySelector('.class-card');
         if (!card) return;
+
+        // Time comes from: adjacent timeTd (colspan=1) OR card's data-time (colspan>1)
         const timeTd  = tr.querySelector(`td[data-col-index="${ci}"][data-is-time="1"]`);
-        const timeStr = timeTd ? timeTd.textContent.trim() : '';
+        const timeStr = timeTd
+          ? timeTd.textContent.trim()
+          : (card.dataset.time || '').trim();
         if (!timeStr) return;
 
         let range = parseTimeRange(timeStr);
@@ -247,15 +257,27 @@
           if (range.end   <= range.start) range.end += 12 * 60;
         }
 
-        colEntries[ci].push({ range, card, timeTd });
+        // Register entry in every day column this cell spans
+        const colSpan = parseInt(td.dataset.colSpan, 10) || 1;
+        for (let offset = 0; offset < colSpan; offset++) {
+          const targetCol = ci + offset;
+          if (colEntries[targetCol]) {
+            colEntries[targetCol].push({ range, card, timeTd });
+          }
+        }
       });
     });
 
-    // Detect overlaps per column
+    // Detect overlaps per column — two entries in the same column bucket means
+    // same day (or a cell that spans into that day). Entries that share the
+    // exact same card are the same cell registered across multiple columns;
+    // skip comparing a card against itself.
     let conflictCount = 0;
     Object.values(colEntries).forEach(entries => {
       for (let i = 0; i < entries.length; i++) {
         for (let j = i + 1; j < entries.length; j++) {
+          // Same physical card registered in multiple columns — not a conflict
+          if (entries[i].card === entries[j].card) continue;
           if (!rangesOverlap(entries[i].range, entries[j].range)) continue;
 
           // Flag both

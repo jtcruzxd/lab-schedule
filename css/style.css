@@ -260,6 +260,10 @@ table.sched-table {
   padding: 0; vertical-align: top;
   position: relative;
 }
+/* When a slot spans multiple rows, center the card content vertically */
+.sched-table td.slot[rowspan] {
+  vertical-align: middle;
+}
 .sched-table td.time-col-per-day {
   background: #f8fafc;
   border: 1px solid var(--rule);
@@ -293,6 +297,11 @@ table.sched-table {
   height: 100%;
   display: flex; flex-direction: column; gap: 2px;
   border-left: 3px solid var(--rule);
+}
+/* In merged (rowspan) cells the slot uses vertical-align:middle,
+   so let the card shrink to its content rather than stretching full height */
+td.slot[rowspan] .class-card {
+  height: auto;
 }
 /* dept accent – just the left border strip, no background tinting */
 .class-card[data-dept="cast"]    { border-left-color: var(--d-cast); }
