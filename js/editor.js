@@ -514,7 +514,10 @@
       document.getElementById('f_section').value = cell.section    || '';
       document.getElementById('f_course').value  = cell.course     || '';
       document.getElementById('f_teacher').value = cell.instructor || '';
-      document.getElementById('f_time').value    = cell.time       || '';
+      // Time slot and class time are the same — show the stored time in the
+      // Time Slot field; fall back to the row label if no time was saved yet
+      document.getElementById('f_timeslot').value = cell.time || (row ? row.label : '');
+      document.getElementById('f_time').value     = cell.time || (row ? row.label : '');
       document.getElementById('f_students').value = cell.students   || '';
       // dept is stored as normalised id; find matching option value
       const deptSel = document.getElementById('f_dept');
@@ -533,6 +536,8 @@
       form.reset();
       document.getElementById('f_day').value      = cols[ci] || '';
       document.getElementById('f_timeslot').value = row ? row.label : '';
+      // Pre-fill the hidden f_time from the row label so it's saved on first submit
+      document.getElementById('f_time').value     = row ? row.label : '';
       document.getElementById('modalTitle').textContent = 'Assign Class';
     }
     clearVal();
@@ -578,7 +583,8 @@
       subject:    document.getElementById('f_subject').value.trim().toUpperCase(),
       section:    document.getElementById('f_section').value.trim().toUpperCase(),
       course:     document.getElementById('f_course').value.trim(),
-      time:       document.getElementById('f_time').value.trim(),
+      // Time slot IS the class time — use f_timeslot as the source of truth
+      time:       document.getElementById('f_timeslot').value.trim(),
       students:   document.getElementById('f_students').value.trim(),
     };
 
