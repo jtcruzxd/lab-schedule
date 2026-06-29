@@ -114,6 +114,15 @@
     if (!s) return;
 
     if (s.columns)       SCHEDULE_DATA.columns      = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; // columns are always static
+
+    // Restore the rows skeleton FIRST so cells have rows to land in
+    if (s.rowStructure && s.rowStructure.length > 0) {
+      SCHEDULE_DATA.rows = s.rowStructure.map(r => {
+        if (r.type === 'lunch') return { type: 'lunch' };
+        return { type: 'normal', label: r.label || '', cells: [] };
+      });
+    }
+
     if (s.rowLabels)     s.rowLabels.forEach((l,i) => { const r = SCHEDULE_DATA.rows[i]; if (r && r.type==='normal' && l!==null) r.label = l; });
     if (s.cells)         Object.entries(s.cells).forEach(([k,cell]) => { const [ri,ci] = k.split('-').map(Number); const row = SCHEDULE_DATA.rows[ri]; if (!row||row.type!=='normal') return; const nc = SCHEDULE_DATA.columns ? SCHEDULE_DATA.columns.length : 6; const flat = window.expandCells(row.cells, nc); flat[ci] = cell===null?{type:'vacant'}:cell; row.cells = flat; });
     if (s.deptColors)    Object.entries(s.deptColors).forEach(([id,c]) => { const d = SCHEDULE_DATA.departments.find(x=>x.id===id); if(d) d.color=c; });
@@ -326,6 +335,8 @@
     const s = get();
     s.cells = {};
     s.rowLabels = [];
+    // Save the full rows skeleton (type + label) so rows can be rebuilt on reload
+    s.rowStructure = SCHEDULE_DATA.rows.map(r => ({ type: r.type, label: r.label || '' }));
     SCHEDULE_DATA.rows.forEach((row, ri) => {
       if (row.type !== 'normal') { s.rowLabels.push(null); return; }
       s.rowLabels.push(row.label);
